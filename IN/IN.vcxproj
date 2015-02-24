@@ -1,0 +1,151 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{6201C616-6417-45A9-99BE-18083F1BAA51}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>IN</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(DXSDK_DIR)Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(DXSDK_DIR)Lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>d3d11.lib;d3dx11.lib;dxerr.lib;dinput8.lib;dxguid.lib;FW1FontWrapper.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy "$(ProjectDir)textured.hlsl" "$(TargetDir)"
+copy "$(ProjectDir)house.x" "$(TargetDir)"
+copy "$(ProjectDir)FW1FontWrapper.dll" "$(TargetDir)"
+copy "$(ProjectDir)*.png" "$(TargetDir)"</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(DXSDK_DIR)Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>$(DXSDK_DIR)Lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>d3d11.lib;d3dx11.lib;dxerr.lib;dinput8.lib;dxguid.lib;FW1FontWrapper.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy "$(ProjectDir)textured.hlsl" "$(TargetDir)"
+copy "$(ProjectDir)house.x" "$(TargetDir)"
+copy "$(ProjectDir)FW1FontWrapper.dll" "$(TargetDir)"
+copy "$(ProjectDir)*.png" "$(TargetDir)"</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="in_scene.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="mini_camera.cpp" />
+    <ClCompile Include="mini_collision.cpp" />
+    <ClCompile Include="mini_constantBuffer.cpp" />
+    <ClCompile Include="mini_dxApplication.cpp" />
+    <ClCompile Include="mini_dxDevice.cpp" />
+    <ClCompile Include="mini_dxstructures.cpp" />
+    <ClCompile Include="mini_effect.cpp" />
+    <ClCompile Include="mini_effectLoader.cpp" />
+    <ClCompile Include="mini_exceptions.cpp" />
+    <ClCompile Include="mini_material.cpp" />
+    <ClCompile Include="mini_mesh.cpp" />
+    <ClCompile Include="mini_sceneGraph.cpp" />
+    <ClCompile Include="mini_sceneNode.cpp" />
+    <ClCompile Include="in_texturedEffect.cpp" />
+    <ClCompile Include="mini_window.cpp" />
+    <ClCompile Include="mini_windowApplication.cpp" />
+    <ClCompile Include="mini_xfileLoader.cpp" />
+    <ClCompile Include="mini_xfileToken.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="in_scene.h" />
+    <ClInclude Include="mini_camera.h" />
+    <ClInclude Include="mini_collision.h" />
+    <ClInclude Include="mini_constantBuffer.h" />
+    <ClInclude Include="mini_dxApplication.h" />
+    <ClInclude Include="mini_dxDevice.h" />
+    <ClInclude Include="mini_dxptr.h" />
+    <ClInclude Include="mini_dxstructures.h" />
+    <ClInclude Include="mini_effect.h" />
+    <ClInclude Include="mini_effectLoader.h" />
+    <ClInclude Include="mini_exceptions.h" />
+    <ClInclude Include="mini_fpsCounter.h" />
+    <ClInclude Include="mini_material.h" />
+    <ClInclude Include="mini_mesh.h" />
+    <ClInclude Include="mini_sceneGraph.h" />
+    <ClInclude Include="mini_sceneNode.h" />
+    <ClInclude Include="in_texturedEffect.h" />
+    <ClInclude Include="mini_window.h" />
+    <ClInclude Include="mini_windowApplication.h" />
+    <ClInclude Include="mini_xfileLoader.h" />
+    <ClInclude Include="mini_xfileToken.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="textured.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">VS_Main</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">VS_Main</EntryPointName>
+    </FxCompile>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
