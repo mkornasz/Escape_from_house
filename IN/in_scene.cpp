@@ -62,7 +62,23 @@ void INScene::Shutdown()
 void INScene::Update(float dt)
 {
 	/*proccess Direct Input here*/
-	
+
+	if (GetKeyState(VK_UP) & 0x80)
+		MoveCharacter(0, dt);
+	else if (GetKeyState(VK_DOWN) & 0x80)
+		MoveCharacter(0, -dt);
+
+	if (GetKeyState(VK_RIGHT) & 0x80)
+		MoveCharacter(dt, 0);
+	else if (GetKeyState(VK_LEFT) & 0x80)
+		MoveCharacter(-dt, 0);
+
+	if (GetKeyState(VK_RETURN) & 0x80 && DistanceToDoor() < 1.0f && FacingDoor() && !m_isReturnDown)
+	{
+		ToggleDoor();
+		m_isReturnDown = true;
+	}
+
 	m_counter.NextFrame(dt);
 	UpdateDoor(dt);
 }
