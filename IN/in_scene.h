@@ -9,6 +9,8 @@
 #include "mini_material.h"
 #include "mini_fpsCounter.h"
 
+#include "dinput.h"
+
 namespace mini
 {
 	class INScene : public mini::DxApplication
@@ -43,6 +45,7 @@ namespace mini
 		float DistanceToDoor();
 
 		void InitializeInput();
+		void InitializeMovement();
 		void UpdateDoor(float dt);
 		void RenderText();
 
@@ -66,5 +69,9 @@ namespace mini
 		float m_doorAngVel;
 		DirectX::XMFLOAT4X4 m_doorTransform;
 		mini::CollisionEngine m_collisions;
+
+		bool m_isMouseDown;
+		bool m_isReturnDown;
+		POINT m_lastMousePosition;
 	};
 }

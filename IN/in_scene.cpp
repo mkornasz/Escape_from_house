@@ -14,6 +14,26 @@ bool INScene::ProcessMessage(WindowMessage& msg)
 	/*Process windows messages here*/
 	/*if message was processed, return true and set value to msg.result*/
 
+	switch (msg.message)
+	{
+		// Left mouse button down
+	case WM_LBUTTONDOWN:
+		m_isMouseDown = true;
+		GetCursorPos(&m_lastMousePosition);
+		break;
+		// Mouse move
+	case WM_MOUSEMOVE:
+		if (!m_isMouseDown) break;
+		POINT mousePosition;
+		GetCursorPos(&mousePosition);
+		m_camera.Rotate((m_lastMousePosition.y - mousePosition.y) * 0.002 * XM_PIDIV4, (m_lastMousePosition.x - mousePosition.x) * 0.002 * XM_PIDIV4);
+		m_lastMousePosition = mousePosition;
+		break;
+	case WM_LBUTTONUP:
+		m_isMouseDown = false;
+		break;
+	}
+
 	return false;
 }
 
@@ -43,9 +63,6 @@ void INScene::Update(float dt)
 {
 	/*proccess Direct Input here*/
 	
-	/*remove the following line to stop the initial camera animation*/
-	m_camera.Rotate(0.0f, dt*XM_PIDIV4);
-
 	m_counter.NextFrame(dt);
 	UpdateDoor(dt);
 }
