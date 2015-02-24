@@ -14,6 +14,68 @@ bool INScene::ProcessMessage(WindowMessage& msg)
 	/*Process windows messages here*/
 	/*if message was processed, return true and set value to msg.result*/
 
+	//HandleMouseChange(msg);
+
+	return false;
+}
+
+void INScene::InitializeInput()
+{
+	/*Initialize Direct Input resources here*/
+
+	HINSTANCE hInst = getHandle();
+	if (FAILED(DirectInput8Create(hInst, DIRECTINPUT_VERSION, IID_IDirectInput8, reinterpret_cast<void**>(&di), nullptr))
+		|| FAILED(di->CreateDevice(GUID_SysMouse, &mouse, nullptr))
+		|| FAILED(di->CreateDevice(GUID_SysKeyboard, &keyboard, nullptr))
+		|| mouse->SetDataFormat(&c_dfDIMouse)
+		|| keyboard->SetDataFormat(&c_dfDIKeyboard)
+		|| mouse->SetCooperativeLevel(m_window.getHandle(), DISCL_FOREGROUND | DISCL_NONEXCLUSIVE)
+		|| keyboard->SetCooperativeLevel(m_window.getHandle(), DISCL_FOREGROUND | DISCL_NONEXCLUSIVE)
+		|| mouse->Acquire() || keyboard->Acquire())
+		return;
+}
+
+void INScene::InitializeMovement()
+{
+	m_isMouseDown = false;
+	m_isReturnDown = false;
+	m_lastMousePosition = POINT();
+}
+
+void INScene::Shutdown()
+{
+	/*Release Direct Input resources here*/
+
+	m_font.reset();
+	m_fontFactory.reset();
+	m_sampler.reset();
+	m_texturedEffect.reset();
+	m_cbProj.reset();
+	m_cbView.reset();
+	m_cbModel.reset();
+	m_sceneGraph.reset();
+	DxApplication::Shutdown();
+
+	mouse->Unacquire();
+	keyboard->Unacquire();
+	di->Release();
+}
+
+void INScene::Update(float dt)
+{
+	/*proccess Direct Input here*/
+
+	//HandleKeyboardChange(dt);
+
+	HandleMouseChangeDI();
+	HandleKeyboardChangeDI(dt);
+
+	m_counter.NextFrame(dt);
+	UpdateDoor(dt);
+}
+
+void INScene::HandleMouseChange(WindowMessage& msg)
+{
 	switch (msg.message)
 	{
 		// Left mouse button down
@@ -33,36 +95,17 @@ bool INScene::ProcessMessage(WindowMessage& msg)
 		m_isMouseDown = false;
 		break;
 	}
-
-	return false;
 }
 
-void INScene::InitializeInput()
+void INScene::HandleMouseChangeDI()
 {
-	/*Initialize Direct Input resources here*/
-
+	DIMOUSESTATE state;
+	if (GetDeviceState(mouse, sizeof(DIMOUSESTATE), &state) && state.rgbButtons[0])
+		m_camera.Rotate((state.lY) * 0.002 * XM_PIDIV4, (state.lX) * 0.002 * XM_PIDIV4);
 }
 
-void INScene::Shutdown()
+void INScene::HandleKeyboardChange(float dt)
 {
-	/*Release Direct Input resources here*/
-
-	m_font.reset();
-	m_fontFactory.reset();
-	m_sampler.reset();
-	m_texturedEffect.reset();
-	m_cbProj.reset();
-	m_cbView.reset();
-	m_cbModel.reset();
-	m_sceneGraph.reset();
-	DxApplication::Shutdown();
-}
-
-
-void INScene::Update(float dt)
-{
-	/*proccess Direct Input here*/
-
 	if (GetKeyState(VK_UP) & 0x80)
 		MoveCharacter(0, dt);
 	else if (GetKeyState(VK_DOWN) & 0x80)
@@ -78,16 +121,62 @@ void INScene::Update(float dt)
 		ToggleDoor();
 		m_isReturnDown = true;
 	}
+}
 
-	m_counter.NextFrame(dt);
-	UpdateDoor(dt);
+void INScene::HandleKeyboardChangeDI(float dt)
+{
+	BYTE keyboardState[256];
+	if (GetDeviceState(keyboard, sizeof(BYTE)* 256, &keyboardState))
+	{
+		if (keyboardState[DIK_UP])
+			MoveCharacter(0, dt);
+		else if (keyboardState[DIK_DOWN])
+			MoveCharacter(0, -dt);
+
+		if (keyboardState[DIK_LEFT])
+			MoveCharacter(-dt, 0);
+		else if (keyboardState[DIK_RIGHT])
+			MoveCharacter(dt, 0);
+
+		if (keyboardState[0x1C] && DistanceToDoor() < 1.0f && FacingDoor() && !m_isReturnDown)
+		{
+			ToggleDoor();
+			m_isReturnDown = true;
+		}
+	}
+}
+
+bool INScene::GetDeviceState(IDirectInputDevice8* pDevice,
+	unsigned int size, void* ptr)
+{
+	if (!pDevice)
+		return false;
+	for (int i = 0; i < GET_STATE_RETRIES; ++i)
+	{
+		HRESULT result = pDevice->GetDeviceState(size, ptr);
+		if (SUCCEEDED(result))
+			return true;
+		if (result != DIERR_INPUTLOST &&
+			result != DIERR_NOTACQUIRED)
+			; //error! throw exeption
+		for (int j = 0; j < ACQUIRE_RETRIES; ++j)
+		{
+			result = pDevice->Acquire();
+			if (SUCCEEDED(result))
+				break;
+			if (result != DIERR_INPUTLOST &&
+				result != E_ACCESSDENIED)
+				; //error! throw exeption
+		}
+	}
+	return false;
 }
 
 void INScene::RenderText()
 {
 	wstringstream str;
 	str << L"FPS: " << m_counter.getCount();
-	m_font->DrawString(m_context.get(), str.str().c_str(), 20.0f, 10.0f, 10.0f, 0xff0099ff, FW1_RESTORESTATE|FW1_NOGEOMETRYSHADER);
+	m_font->DrawString(m_context.get(), str.str().c_str(), 20.0f, 10.0f, 10.0f, 0xff0099ff, FW1_RESTORESTATE | FW1_NOGEOMETRYSHADER);
 	if (DistanceToDoor() < 1.0f && FacingDoor())
 	{
 		wstring prompt(L"(E) Otwórz/Zamknij");
@@ -96,7 +185,7 @@ void INScene::RenderText()
 		float width = rect.Right - rect.Left;
 		float height = rect.Bottom - rect.Top;
 		auto clSize = m_window.getClientSize();
-		m_font->DrawString(m_context.get(), prompt.c_str(), 20.0f, (clSize.cx - width)/2, (clSize.cy - height)/2, 0xff00ff99,  FW1_RESTORESTATE|FW1_NOGEOMETRYSHADER);
+		m_font->DrawString(m_context.get(), prompt.c_str(), 20.0f, (clSize.cx - width) / 2, (clSize.cy - height) / 2, 0xff00ff99, FW1_RESTORESTATE | FW1_NOGEOMETRYSHADER);
 	}
 }
 
@@ -121,7 +210,7 @@ bool INScene::Initialize()
 	EffectLoader eloader(m_device);
 	eloader.Load(L"textured.hlsl");
 	m_texturedEffect.reset(new TexturedEffect(move(eloader.m_vs), move(eloader.m_ps), m_cbProj, m_cbView, m_cbModel, m_cbMaterial));
-	D3D11_INPUT_ELEMENT_DESC elem[] = 
+	D3D11_INPUT_ELEMENT_DESC elem[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -149,7 +238,7 @@ bool INScene::Initialize()
 	m_sampler = m_device.CreateSamplerState(sDesc);
 	ID3D11SamplerState* sstates[1] = { m_sampler.get() };
 	m_context->PSSetSamplers(0, 1, sstates);
-	
+
 	IFW1Factory *pf;
 	HRESULT result = FW1CreateFactory(FW1_VERSION, &pf);
 	m_fontFactory.reset(pf);
@@ -175,7 +264,7 @@ void INScene::Render()
 	XMStoreFloat4x4(&mtx[0], m_camera.GetViewMatrix());
 	m_cbView->Update(m_context, mtx[0]);
 	m_texturedEffect->Begin(m_context);
-	for ( unsigned int i = 0; i < m_sceneGraph->meshCount(); ++i)
+	for (unsigned int i = 0; i < m_sceneGraph->meshCount(); ++i)
 	{
 		Mesh& m = m_sceneGraph->getMesh(i);
 		Material& material = m_sceneGraph->getMaterial(m.getMaterialIdx());
@@ -218,7 +307,7 @@ void INScene::UpdateDoor(float dt)
 	if ((m_doorAngVel > 0 && m_doorAngle < XM_PIDIV2) || (m_doorAngVel < 0 && m_doorAngle > 0))
 	{
 		m_doorAngle += dt*m_doorAngVel;
-		if ( m_doorAngle < 0 )
+		if (m_doorAngle < 0)
 			m_doorAngle = 0;
 		else if (m_doorAngle > XM_PIDIV2)
 			m_doorAngle = XM_PIDIV2;
@@ -256,7 +345,7 @@ bool INScene::FacingDoor()
 	{
 		for (unsigned int j = i + 1; j < 4; ++j)
 		{
-			float a = XMVector2AngleBetweenVectors(points[i]-camera, points[j]-camera).m128_f32[0];
+			float a = XMVector2AngleBetweenVectors(points[i] - camera, points[j] - camera).m128_f32[0];
 			if (a > max_a)
 			{
 				max_i = i;
@@ -265,7 +354,7 @@ bool INScene::FacingDoor()
 			}
 		}
 	}
-	return XMScalarNearEqual(XMVector2AngleBetweenVectors(forward, points[max_i]-camera).m128_f32[0] + XMVector2AngleBetweenVectors(forward, points[max_j] - camera).m128_f32[0], max_a, 0.001f);
+	return XMScalarNearEqual(XMVector2AngleBetweenVectors(forward, points[max_i] - camera).m128_f32[0] + XMVector2AngleBetweenVectors(forward, points[max_j] - camera).m128_f32[0], max_a, 0.001f);
 }
 
 float INScene::DistanceToDoor()

@@ -49,6 +49,13 @@ namespace mini
 		void UpdateDoor(float dt);
 		void RenderText();
 
+		void HandleMouseChange(WindowMessage& msg);
+		void HandleKeyboardChange(float dt);
+
+		bool GetDeviceState(IDirectInputDevice8* pDevice, unsigned int size, void* ptr);
+		void HandleMouseChangeDI();
+		void HandleKeyboardChangeDI(float dt);
+
 		std::unique_ptr<ConstantBuffer<DirectX::XMFLOAT4X4>> m_cbProj;
 		std::unique_ptr<ConstantBuffer<DirectX::XMFLOAT4X4>> m_cbView;
 		std::unique_ptr<ConstantBuffer<DirectX::XMFLOAT4X4, 2> > m_cbModel;
@@ -73,5 +80,12 @@ namespace mini
 		bool m_isMouseDown;
 		bool m_isReturnDown;
 		POINT m_lastMousePosition;
+
+		IDirectInput8 * di;
+		IDirectInputDevice8* mouse;
+		IDirectInputDevice8* keyboard;
+
+		const unsigned int GET_STATE_RETRIES = 2;
+		const unsigned int ACQUIRE_RETRIES = 2;
 	};
 }
