@@ -106,9 +106,12 @@ namespace mini
 		IDirectInputDevice8* keyboard;
 		// DirectX joystick device
 		IDirectInputDevice8* joystick;
+		// Keeps Joystick capabilities
+		DIDEVCAPS m_capabilities;
 
 		static const unsigned int GET_STATE_RETRIES = 2;
 		static const unsigned int ACQUIRE_RETRIES = 2;
+		static const unsigned int MaxAxisRange = 32767;
 
 		bool m_showControlers;
 		int m_controlerNumber;

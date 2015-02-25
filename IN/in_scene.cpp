@@ -37,9 +37,13 @@ void INScene::InitializeInput()
 		|| FAILED(mouse->SetDataFormat(&c_dfDIMouse))
 		|| FAILED(mouse->Acquire()))
 		throw new exception("Cannot initialize mouse");
-
+	
+	m_capabilities.dwSize = sizeof(DIDEVCAPS);
 	if (FAILED(di->CreateDevice(GUID_Joystick, &joystick, nullptr))
-		|| FAILED(joystick->SetDataFormat(&c_dfDIJoystick))
+		|| FAILED(joystick->SetDataFormat(&c_dfDIJoystick2))
+		// Determine how many axis the joystick has (so we don't error out setting
+		// properties for unavailable axis)
+		|| FAILED(joystick->GetCapabilities(&m_capabilities))
 		|| FAILED(joystick->Acquire()))
 		throw new exception("Cannot initialize joystick");
 }
@@ -70,6 +74,9 @@ void INScene::Shutdown()
 
 	mouse->Unacquire();
 	keyboard->Unacquire();
+	if (joystick)
+		joystick->Unacquire();
+
 	di->Release();
 }
 
@@ -167,9 +174,12 @@ void INScene::HandleKeyboardChangeDI(float dt)
 
 void INScene::HandleJoystickChangeDI(float dt)
 {
-	DIJOYSTATE state;
-	if (GetDeviceState(joystick, sizeof(DIJOYSTATE), &state))
+	DIJOYSTATE2 state;
+	if (GetDeviceState(joystick, sizeof(DIJOYSTATE2), &state))
 	{
+		float x = dt * (state.lX - MaxAxisRange) / MaxAxisRange;
+		float y = -dt * (state.lY - MaxAxisRange) / MaxAxisRange;
+		MoveCharacter(x, y);
 	}
 }
 
@@ -426,8 +436,8 @@ void INScene::RenderControlerMenu()
 		str << ". KEYBOARD\n";
 	}
 
-	DIJOYSTATE state;
-	if (GetDeviceState(joystick, sizeof(DIJOYSTATE), &state))
+	DIJOYSTATE2 state;
+	if (GetDeviceState(joystick, sizeof(DIJOYSTATE2), &state))
 	{
 		str << ++m_controlerNumber;
 		str << ". JOYSTICK\n";
