@@ -85,7 +85,7 @@ namespace mini
 		IDirectInputDevice8* mouse;
 		IDirectInputDevice8* keyboard;
 
-		const unsigned int GET_STATE_RETRIES = 2;
-		const unsigned int ACQUIRE_RETRIES = 2;
+		static const unsigned int GET_STATE_RETRIES = 2;
+		static const unsigned int ACQUIRE_RETRIES = 2;
 	};
 }

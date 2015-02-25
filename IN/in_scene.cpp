@@ -22,6 +22,7 @@ bool INScene::ProcessMessage(WindowMessage& msg)
 void INScene::InitializeInput()
 {
 	/*Initialize Direct Input resources here*/
+	InitializeMovement();
 
 	HINSTANCE hInst = getHandle();
 	if (FAILED(DirectInput8Create(hInst, DIRECTINPUT_VERSION, IID_IDirectInput8, reinterpret_cast<void**>(&di), nullptr))
@@ -138,7 +139,7 @@ void INScene::HandleKeyboardChangeDI(float dt)
 		else if (keyboardState[DIK_RIGHT])
 			MoveCharacter(dt, 0);
 
-		if (keyboardState[0x1C] && DistanceToDoor() < 1.0f && FacingDoor() && !m_isReturnDown)
+		if (keyboardState[DIK_RETURN] && DistanceToDoor() < 1.0f && FacingDoor() && !m_isReturnDown)
 		{
 			ToggleDoor();
 			m_isReturnDown = true;
@@ -147,7 +148,7 @@ void INScene::HandleKeyboardChangeDI(float dt)
 }
 
 bool INScene::GetDeviceState(IDirectInputDevice8* pDevice,
-	unsigned int size, void* ptr)
+							 unsigned int size, void* ptr)
 {
 	if (!pDevice)
 		return false;
@@ -319,6 +320,8 @@ void INScene::UpdateDoor(float dt)
 		m_sceneGraph->setNodeTransform(m_doorNode, doorTransform);
 		XMFLOAT2 tr = m_collisions.MoveObstacle(5, OrientedBoundingRectangle(XMFLOAT2(-3.05f, 1.0f), 0.1f, 1.0f, m_doorAngle));
 		m_camera.Move(XMFLOAT3(tr.x, 0, tr.y));
+		if(m_doorAngle == 0 || m_doorAngle == XM_PIDIV2)
+			m_isReturnDown = false;
 	}
 }
 
