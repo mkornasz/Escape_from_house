@@ -61,7 +61,12 @@ namespace mini
 		void InitializeEnvironment();
 		// Choose the available controler
 		void ChooseControler(BYTE keyboardState[256]);
+		//Render controler chooser menu
 		void RenderControlerMenu();
+		//Render keyboard chooser menu
+		void RenderKeyboard();
+		//Render joystick chooser menu
+		void RenderJoystick();
 
 		std::unique_ptr<ConstantBuffer<DirectX::XMFLOAT4X4>> m_cbProj;
 		std::unique_ptr<ConstantBuffer<DirectX::XMFLOAT4X4>> m_cbView;
@@ -102,5 +107,8 @@ namespace mini
 		bool m_showControlers;
 		int m_controlerNumber;
 		int m_chosenControler;
+		
+		bool m_renderKeyboard;
+		bool m_renderJoystick;
 	};
 }
