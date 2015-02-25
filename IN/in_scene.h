@@ -44,18 +44,24 @@ namespace mini
 		//Returns the distance from the character to the door
 		float DistanceToDoor();
 
+		// Initialize all the variables
 		void InitializeInput();
 		void UpdateDoor(float dt);
 		void RenderText();
 
-		// Handle mouse and keyboard changes using Windows API
+		// Handle mouse changes using Windows API
 		void HandleMouseChange(WindowMessage& msg);
+		// Handle keyboard changes using Windows API
 		void HandleKeyboardChange(float dt);
 
-		// Handle mouse and keyboard changes using DirectX API
+		// Get the state of the device using DirectX API
 		bool GetDeviceState(IDirectInputDevice8* pDevice, unsigned int size, void* ptr);
+		// Handle mouse changes using DirectX API
 		void HandleMouseChangeDI();
+		// Handle keyboard changes using DirectX API
 		void HandleKeyboardChangeDI(float dt);
+		// Handle joystick changes using DirectX API
+		void HandleJoystickChangeDI(float dt);
 
 		//Initialize all variables
 		void InitializeEnvironment();
@@ -65,8 +71,6 @@ namespace mini
 		void RenderControlerMenu();
 		//Render keyboard chooser menu
 		void RenderKeyboard();
-		//Render joystick chooser menu
-		void RenderJoystick();
 
 		std::unique_ptr<ConstantBuffer<DirectX::XMFLOAT4X4>> m_cbProj;
 		std::unique_ptr<ConstantBuffer<DirectX::XMFLOAT4X4>> m_cbView;
@@ -94,21 +98,28 @@ namespace mini
 		bool m_isReturnDown;
 		POINT m_lastMousePosition;
 
-		// DirectX devices
+		// DirectX input
 		IDirectInput8 * di;
+		// DirectX mouse device
 		IDirectInputDevice8* mouse;
+		// DirectX keyboard device
 		IDirectInputDevice8* keyboard;
+		// DirectX joystick device
 		IDirectInputDevice8* joystick;
 
-		// Device state constants
 		static const unsigned int GET_STATE_RETRIES = 2;
 		static const unsigned int ACQUIRE_RETRIES = 2;
 
 		bool m_showControlers;
 		int m_controlerNumber;
 		int m_chosenControler;
-		
+
 		bool m_renderKeyboard;
-		bool m_renderJoystick;
+
+		//Available controlers
+		enum Controlers
+		{
+			Keyboard, Joystick
+		};
 	};
 }

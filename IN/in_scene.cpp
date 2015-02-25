@@ -51,6 +51,7 @@ void INScene::InitializeEnvironment()
 	m_lastMousePosition = POINT();
 
 	m_showControlers = false;
+	m_chosenControler = Keyboard;
 }
 
 void INScene::Shutdown()
@@ -80,6 +81,8 @@ void INScene::Update(float dt)
 
 	HandleMouseChangeDI();
 	HandleKeyboardChangeDI(dt);
+	if (m_chosenControler == Joystick)
+		HandleJoystickChangeDI(dt);
 
 	m_counter.NextFrame(dt);
 	UpdateDoor(dt);
@@ -137,7 +140,7 @@ void INScene::HandleKeyboardChange(float dt)
 void INScene::HandleKeyboardChangeDI(float dt)
 {
 	BYTE keyboardState[256];
-	if (GetDeviceState(keyboard, sizeof(BYTE) * 256, &keyboardState))
+	if (GetDeviceState(keyboard, sizeof(BYTE)* 256, &keyboardState))
 	{
 		if (m_showControlers)
 			ChooseControler(keyboardState);
@@ -159,6 +162,14 @@ void INScene::HandleKeyboardChangeDI(float dt)
 			ToggleDoor();
 			m_isReturnDown = true;
 		}
+	}
+}
+
+void INScene::HandleJoystickChangeDI(float dt)
+{
+	DIJOYSTATE state;
+	if (GetDeviceState(joystick, sizeof(DIJOYSTATE), &state))
+	{
 	}
 }
 
@@ -382,18 +393,17 @@ float INScene::DistanceToDoor()
 void INScene::ChooseControler(BYTE keyboardState[256])
 {
 	if (m_controlerNumber > 0)
-		if (keyboardState[DIK_1] || keyboardState[DIK_NUMPAD1])
-		{
-			m_chosenControler = 1;
-			m_showControlers = false;
-			m_renderKeyboard = true;
-		}
-		else if (m_controlerNumber > 1 && (keyboardState[DIK_2] || keyboardState[DIK_NUMPAD2]))
-		{
-			m_chosenControler = 2;
-			m_showControlers = false;
-			m_renderJoystick = true;
-		}
+	if (keyboardState[DIK_1] || keyboardState[DIK_NUMPAD1])
+	{
+		m_chosenControler = Keyboard;
+		m_showControlers = false;
+		m_renderKeyboard = true;
+	}
+	else if (m_controlerNumber > 1 && (keyboardState[DIK_2] || keyboardState[DIK_NUMPAD2]))
+	{
+		m_chosenControler = Joystick;
+		m_showControlers = false;
+	}
 }
 
 void INScene::RenderControlerMenu()
@@ -410,12 +420,18 @@ void INScene::RenderControlerMenu()
 
 	m_controlerNumber = 0;
 	byte keyboardState[256];
-	if (GetDeviceState(keyboard, sizeof(BYTE) * 256, &keyboardState))
-		str << ++m_controlerNumber + ". KEYBOARD\n";
+	if (GetDeviceState(keyboard, sizeof(BYTE)* 256, &keyboardState))
+	{
+		str << ++m_controlerNumber;
+		str << ". KEYBOARD\n";
+	}
 
 	DIJOYSTATE state;
 	if (GetDeviceState(joystick, sizeof(DIJOYSTATE), &state))
-		str << ++m_controlerNumber + ". JOYSTICK\n";
+	{
+		str << ++m_controlerNumber;
+		str << ". JOYSTICK\n";
+	}
 
 	m_font->DrawString(m_context.get(), str.str().c_str(), 20.0f, left, top, 0xf500992f, FW1_RESTORESTATE | FW1_NOGEOMETRYSHADER);
 }
@@ -434,27 +450,7 @@ void INScene::RenderKeyboard()
 
 	m_controlerNumber = 0;
 	byte keyboardState[256];
-	if (GetDeviceState(keyboard, sizeof(BYTE) * 256, &keyboardState))
-		str << ++m_controlerNumber + ". KEYBOARD\n";
-
-	m_font->DrawString(m_context.get(), str.str().c_str(), 20.0f, left, top, 0xf500992f, FW1_RESTORESTATE | FW1_NOGEOMETRYSHADER);
-}
-
-void INScene::RenderJoystick()
-{
-	if (!m_renderKeyboard) return;
-
-	RECT tarWnd;
-	GetClientRect(m_window.getHandle(), &tarWnd);
-	int left = (tarWnd.right - tarWnd.left) / 2;
-	int top = (tarWnd.bottom - tarWnd.top) / 2;
-
-	wstringstream str;
-	str << L"Choose the controler: \n";
-
-	m_controlerNumber = 0;
-	byte keyboardState[256];
-	if (GetDeviceState(keyboard, sizeof(BYTE) * 256, &keyboardState))
+	if (GetDeviceState(keyboard, sizeof(BYTE)* 256, &keyboardState))
 		str << ++m_controlerNumber + ". KEYBOARD\n";
 
 	m_font->DrawString(m_context.get(), str.str().c_str(), 20.0f, left, top, 0xf500992f, FW1_RESTORESTATE | FW1_NOGEOMETRYSHADER);

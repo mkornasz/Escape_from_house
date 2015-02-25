@@ -80,3 +80,4 @@ IN.sln.GhostDoc.xml
 *.suo
 *.sdf
 *.sdf
+*.vcxproj
