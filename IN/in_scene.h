@@ -45,16 +45,23 @@ namespace mini
 		float DistanceToDoor();
 
 		void InitializeInput();
-		void InitializeMovement();
 		void UpdateDoor(float dt);
 		void RenderText();
 
+		// Handle mouse and keyboard changes using Windows API
 		void HandleMouseChange(WindowMessage& msg);
 		void HandleKeyboardChange(float dt);
 
+		// Handle mouse and keyboard changes using DirectX API
 		bool GetDeviceState(IDirectInputDevice8* pDevice, unsigned int size, void* ptr);
 		void HandleMouseChangeDI();
 		void HandleKeyboardChangeDI(float dt);
+
+		//Initialize all variables
+		void InitializeEnvironment();
+		// Choose the available controler
+		void ChooseControler(BYTE keyboardState[256]);
+		void RenderControlerMenu();
 
 		std::unique_ptr<ConstantBuffer<DirectX::XMFLOAT4X4>> m_cbProj;
 		std::unique_ptr<ConstantBuffer<DirectX::XMFLOAT4X4>> m_cbView;
@@ -77,15 +84,23 @@ namespace mini
 		DirectX::XMFLOAT4X4 m_doorTransform;
 		mini::CollisionEngine m_collisions;
 
+		// Camera movement variables
 		bool m_isMouseDown;
 		bool m_isReturnDown;
 		POINT m_lastMousePosition;
 
+		// DirectX devices
 		IDirectInput8 * di;
 		IDirectInputDevice8* mouse;
 		IDirectInputDevice8* keyboard;
+		IDirectInputDevice8* joystick;
 
+		// Device state constants
 		static const unsigned int GET_STATE_RETRIES = 2;
 		static const unsigned int ACQUIRE_RETRIES = 2;
+
+		bool m_showControlers;
+		int m_controlerNumber;
+		int m_chosenControler;
 	};
 }

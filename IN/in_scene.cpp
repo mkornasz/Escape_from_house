@@ -22,25 +22,35 @@ bool INScene::ProcessMessage(WindowMessage& msg)
 void INScene::InitializeInput()
 {
 	/*Initialize Direct Input resources here*/
-	InitializeMovement();
+	InitializeEnvironment();
 
 	HINSTANCE hInst = getHandle();
-	if (FAILED(DirectInput8Create(hInst, DIRECTINPUT_VERSION, IID_IDirectInput8, reinterpret_cast<void**>(&di), nullptr))
-		|| FAILED(di->CreateDevice(GUID_SysMouse, &mouse, nullptr))
-		|| FAILED(di->CreateDevice(GUID_SysKeyboard, &keyboard, nullptr))
-		|| mouse->SetDataFormat(&c_dfDIMouse)
-		|| keyboard->SetDataFormat(&c_dfDIKeyboard)
-		|| mouse->SetCooperativeLevel(m_window.getHandle(), DISCL_FOREGROUND | DISCL_NONEXCLUSIVE)
-		|| keyboard->SetCooperativeLevel(m_window.getHandle(), DISCL_FOREGROUND | DISCL_NONEXCLUSIVE)
-		|| mouse->Acquire() || keyboard->Acquire())
+	if (FAILED(DirectInput8Create(hInst, DIRECTINPUT_VERSION, IID_IDirectInput8, reinterpret_cast<void**>(&di), nullptr)))
 		return;
+
+	if (FAILED(di->CreateDevice(GUID_SysKeyboard, &keyboard, nullptr))
+		|| FAILED(keyboard->SetDataFormat(&c_dfDIKeyboard))
+		|| FAILED(keyboard->Acquire()))
+		throw new exception("Cannot initialize keyboard");
+
+	if (FAILED(di->CreateDevice(GUID_SysMouse, &mouse, nullptr))
+		|| FAILED(mouse->SetDataFormat(&c_dfDIMouse))
+		|| FAILED(mouse->Acquire()))
+		throw new exception("Cannot initialize mouse");
+
+	if (FAILED(di->CreateDevice(GUID_Joystick, &joystick, nullptr))
+		|| FAILED(joystick->SetDataFormat(&c_dfDIJoystick))
+		|| FAILED(joystick->Acquire()))
+		throw new exception("Cannot initialize joystick");
 }
 
-void INScene::InitializeMovement()
+void INScene::InitializeEnvironment()
 {
 	m_isMouseDown = false;
 	m_isReturnDown = false;
 	m_lastMousePosition = POINT();
+
+	m_showControlers = false;
 }
 
 void INScene::Shutdown()
@@ -127,8 +137,13 @@ void INScene::HandleKeyboardChange(float dt)
 void INScene::HandleKeyboardChangeDI(float dt)
 {
 	BYTE keyboardState[256];
-	if (GetDeviceState(keyboard, sizeof(BYTE)* 256, &keyboardState))
+	if (GetDeviceState(keyboard, sizeof(BYTE) * 256, &keyboardState))
 	{
+		if (m_showControlers)
+			ChooseControler(keyboardState);
+		if (keyboardState[DIK_ESCAPE])
+			m_showControlers = !m_showControlers;
+
 		if (keyboardState[DIK_UP])
 			MoveCharacter(0, dt);
 		else if (keyboardState[DIK_DOWN])
@@ -148,7 +163,7 @@ void INScene::HandleKeyboardChangeDI(float dt)
 }
 
 bool INScene::GetDeviceState(IDirectInputDevice8* pDevice,
-							 unsigned int size, void* ptr)
+	unsigned int size, void* ptr)
 {
 	if (!pDevice)
 		return false;
@@ -157,17 +172,15 @@ bool INScene::GetDeviceState(IDirectInputDevice8* pDevice,
 		HRESULT result = pDevice->GetDeviceState(size, ptr);
 		if (SUCCEEDED(result))
 			return true;
-		if (result != DIERR_INPUTLOST &&
-			result != DIERR_NOTACQUIRED)
-			; //error! throw exeption
+		if (result != DIERR_INPUTLOST && result != DIERR_NOTACQUIRED)
+			throw new exception("Cannot acquire device"); //error! throw exeption
 		for (int j = 0; j < ACQUIRE_RETRIES; ++j)
 		{
 			result = pDevice->Acquire();
 			if (SUCCEEDED(result))
 				break;
-			if (result != DIERR_INPUTLOST &&
-				result != E_ACCESSDENIED)
-				; //error! throw exeption
+			if (result != DIERR_INPUTLOST && result != E_ACCESSDENIED)
+				throw new exception("Cannot acquire device"); //error! throw exeption
 		}
 	}
 	return false;
@@ -284,6 +297,7 @@ void INScene::Render()
 		m.Render(m_context);
 	}
 	RenderText();
+	RenderControlerMenu();
 }
 
 void INScene::OpenDoor()
@@ -320,7 +334,7 @@ void INScene::UpdateDoor(float dt)
 		m_sceneGraph->setNodeTransform(m_doorNode, doorTransform);
 		XMFLOAT2 tr = m_collisions.MoveObstacle(5, OrientedBoundingRectangle(XMFLOAT2(-3.05f, 1.0f), 0.1f, 1.0f, m_doorAngle));
 		m_camera.Move(XMFLOAT3(tr.x, 0, tr.y));
-		if(m_doorAngle == 0 || m_doorAngle == XM_PIDIV2)
+		if (m_doorAngle == 0 || m_doorAngle == XM_PIDIV2)
 			m_isReturnDown = false;
 	}
 }
@@ -363,4 +377,37 @@ bool INScene::FacingDoor()
 float INScene::DistanceToDoor()
 {
 	return m_collisions.DistanceToObstacle(5);
+}
+
+void INScene::ChooseControler(BYTE keyboardState[256])
+{
+	if (m_controlerNumber > 0)
+		if (keyboardState[DIK_1] || keyboardState[DIK_NUMPAD1])
+			m_chosenControler = 1;
+		else if (m_controlerNumber > 1 && (keyboardState[DIK_2] || keyboardState[DIK_NUMPAD2]))
+			m_chosenControler = 2;
+}
+
+void INScene::RenderControlerMenu()
+{
+	if (!m_showControlers) return;
+
+	RECT tarWnd;
+	GetClientRect(m_window.getHandle(), &tarWnd);
+	int left = (tarWnd.right - tarWnd.left) / 2;
+	int top = (tarWnd.bottom - tarWnd.top) / 2;
+
+	wstringstream str;
+	str << L"Choose the controler: \n";
+
+	m_controlerNumber = 0;
+	byte keyboardState[256];
+	if (GetDeviceState(keyboard, sizeof(BYTE) * 256, &keyboardState))
+		str << ++m_controlerNumber + ". KEYBOARD\n";
+
+	DIJOYSTATE state;
+	if (GetDeviceState(joystick, sizeof(DIJOYSTATE), &state))
+		str << ++m_controlerNumber + ". JOYSTICK\n";
+
+	m_font->DrawString(m_context.get(), str.str().c_str(), 20.0f, left, top, 0xf500992f, FW1_RESTORESTATE | FW1_NOGEOMETRYSHADER);
 }
