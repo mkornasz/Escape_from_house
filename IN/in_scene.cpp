@@ -37,7 +37,7 @@ void INScene::InitializeInput()
 		|| FAILED(mouse->SetDataFormat(&c_dfDIMouse))
 		|| FAILED(mouse->Acquire()))
 		throw new exception("Cannot initialize mouse");
-	
+
 	m_capabilities.dwSize = sizeof(DIDEVCAPS);
 	if (FAILED(di->CreateDevice(GUID_Joystick, &joystick, nullptr))
 		|| FAILED(joystick->SetDataFormat(&c_dfDIJoystick2))
@@ -56,6 +56,13 @@ void INScene::InitializeEnvironment()
 
 	m_showControlers = false;
 	m_chosenControler = Keyboard;
+
+	m_up = DIK_UP;
+	m_down = DIK_DOWN;
+	m_left = DIK_LEFT;
+	m_right = DIK_RIGHT;
+	m_open = DIK_RETURN;
+	m_menu = DIK_ESCAPE;
 }
 
 void INScene::Shutdown()
@@ -84,12 +91,18 @@ void INScene::Update(float dt)
 {
 	/*proccess Direct Input here*/
 
-	//HandleKeyboardChange(dt);
+	switch (m_chosenControler)
+	{
+	case Keyboard:
+		HandleMouseChangeDI();
+		HandleKeyboardChangeDI(dt);
 
-	HandleMouseChangeDI();
-	HandleKeyboardChangeDI(dt);
-	if (m_chosenControler == Joystick)
+		//HandleKeyboardChange(dt);
+		break;
+	case Joystick:
 		HandleJoystickChangeDI(dt);
+		break;
+	}
 
 	m_counter.NextFrame(dt);
 	UpdateDoor(dt);
@@ -150,21 +163,24 @@ void INScene::HandleKeyboardChangeDI(float dt)
 	if (GetDeviceState(keyboard, sizeof(BYTE)* 256, &keyboardState))
 	{
 		if (m_showControlers)
+		{
 			ChooseControler(keyboardState);
-		if (keyboardState[DIK_ESCAPE])
+			return;
+		}
+		if (keyboardState[m_menu])
 			m_showControlers = !m_showControlers;
 
-		if (keyboardState[DIK_UP])
+		if (keyboardState[m_up])
 			MoveCharacter(0, dt);
-		else if (keyboardState[DIK_DOWN])
+		else if (keyboardState[m_down])
 			MoveCharacter(0, -dt);
 
-		if (keyboardState[DIK_LEFT])
+		if (keyboardState[m_left])
 			MoveCharacter(-dt, 0);
-		else if (keyboardState[DIK_RIGHT])
+		else if (keyboardState[m_right])
 			MoveCharacter(dt, 0);
 
-		if (keyboardState[DIK_RETURN] && DistanceToDoor() < 1.0f && FacingDoor() && !m_isReturnDown)
+		if (keyboardState[m_open] && DistanceToDoor() < 1.0f && FacingDoor() && !m_isReturnDown)
 		{
 			ToggleDoor();
 			m_isReturnDown = true;

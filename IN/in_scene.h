@@ -113,16 +113,44 @@ namespace mini
 		static const unsigned int ACQUIRE_RETRIES = 2;
 		static const unsigned int MaxAxisRange = 32767;
 
+		//Should show available controlers
 		bool m_showControlers;
+		//Number of available controlers
 		int m_controlerNumber;
+		//Chosen controler (from enum)
 		int m_chosenControler;
 
+		//Should render keyboard chooser menu
 		bool m_renderKeyboard;
+
+		//Key corresponding to moving the character forward
+		int m_up;
+		//Key corresponding to moving the character backwards
+		int m_down;
+		//Key corresponding to moving the character left
+		int m_left;
+		//Key corresponding to moving the character right
+		int m_right;
+
+		//Key corresponding to opening the door
+		int m_open;
+		//Key corresponding to viewing the menu
+		int m_menu;
 
 		//Available controlers
 		enum Controlers
 		{
 			Keyboard, Joystick
+		};
+		//Available camera rotations
+		enum CameraRotation
+		{
+			UpRotate, DownRotate, LeftRotate, RightRotate
+		};
+		//Available character movements
+		enum CharacterMovement
+		{
+			Up, Down, Left, Right
 		};
 	};
 }
