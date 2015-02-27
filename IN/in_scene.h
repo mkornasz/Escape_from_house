@@ -69,8 +69,12 @@ namespace mini
 		void ChooseControler(BYTE keyboardState[256]);
 		//Render controler chooser menu
 		void RenderControlerMenu();
-		//Render keyboard chooser menu
-		void RenderKeyboard();
+		//Renders Keyboard in the controler menu and returns true if it's available
+		bool RenderControlerMenuKeyboard(int left, int top);
+		//Renders Joystick in the controler menu and returns true if it's available
+		bool RenderControlerMenuJoystick(int left, int top);
+		//Render buttons chooser menu
+		void RenderButtons();
 
 		std::unique_ptr<ConstantBuffer<DirectX::XMFLOAT4X4>> m_cbProj;
 		std::unique_ptr<ConstantBuffer<DirectX::XMFLOAT4X4>> m_cbView;
@@ -119,9 +123,11 @@ namespace mini
 		int m_controlerNumber;
 		//Chosen controler (from enum)
 		int m_chosenControler;
+		//Highlighted index of the controler
+		int m_highlitedIndex;
 
-		//Should render keyboard chooser menu
-		bool m_renderKeyboard;
+		//Should render buttons chooser menu
+		bool m_renderButtons;
 
 		//Key corresponding to moving the character forward
 		int m_up;

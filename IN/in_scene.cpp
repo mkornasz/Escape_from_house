@@ -56,6 +56,7 @@ void INScene::InitializeEnvironment()
 
 	m_showControlers = false;
 	m_chosenControler = Keyboard;
+	m_highlitedIndex = 0;
 
 	m_up = DIK_UP;
 	m_down = DIK_DOWN;
@@ -193,8 +194,10 @@ void INScene::HandleJoystickChangeDI(float dt)
 	DIJOYSTATE2 state;
 	if (GetDeviceState(joystick, sizeof(DIJOYSTATE2), &state))
 	{
-		float x = dt * (state.lX - MaxAxisRange) / MaxAxisRange;
-		float y = -dt * (state.lY - MaxAxisRange) / MaxAxisRange;
+		float cc = state.lX - MaxAxisRange;
+		float ccs = state.lY - MaxAxisRange;
+		float x = (state.lX - MaxAxisRange) * 0.002 / MaxAxisRange;
+		float y = (state.lY - MaxAxisRange) * 0.002 / MaxAxisRange;
 		MoveCharacter(x, y);
 	}
 }
@@ -419,16 +422,27 @@ float INScene::DistanceToDoor()
 void INScene::ChooseControler(BYTE keyboardState[256])
 {
 	if (m_controlerNumber > 0)
-	if (keyboardState[DIK_1] || keyboardState[DIK_NUMPAD1])
+	if (keyboardState[m_up])
 	{
-		m_chosenControler = Keyboard;
-		m_showControlers = false;
-		m_renderKeyboard = true;
+		m_highlitedIndex = (m_highlitedIndex - 1 + m_controlerNumber) % m_controlerNumber;
+		return;
 	}
-	else if (m_controlerNumber > 1 && (keyboardState[DIK_2] || keyboardState[DIK_NUMPAD2]))
+	else if (keyboardState[m_down])
 	{
-		m_chosenControler = Joystick;
+		m_highlitedIndex = (m_highlitedIndex + 1) % m_controlerNumber;
+		return;
+	}
+	else if (keyboardState[m_open])
+	{
+		m_chosenControler = m_highlitedIndex;
 		m_showControlers = false;
+		m_renderButtons = true;
+		m_highlitedIndex = 0;
+	}
+	else if (keyboardState[m_menu])
+	{
+		m_showControlers = false;
+		m_highlitedIndex = 0;
 	}
 }
 
@@ -438,33 +452,54 @@ void INScene::RenderControlerMenu()
 
 	RECT tarWnd;
 	GetClientRect(m_window.getHandle(), &tarWnd);
-	int left = (tarWnd.right - tarWnd.left) / 2;
-	int top = (tarWnd.bottom - tarWnd.top) / 2;
+	int left = (tarWnd.right - tarWnd.left) / 2 - 100;
+	int top = (tarWnd.bottom - tarWnd.top) / 2 - 100;
 
 	wstringstream str;
 	str << L"Choose the controler: \n";
+	m_font->DrawString(m_context.get(), str.str().c_str(), 20.0f, left, top, 0xf500992f, FW1_RESTORESTATE | FW1_NOGEOMETRYSHADER);
+	top += 30;
 
 	m_controlerNumber = 0;
+	if (RenderControlerMenuKeyboard(left, top))
+		top += 30;
+
+	RenderControlerMenuJoystick(left, top);
+}
+
+bool INScene::RenderControlerMenuKeyboard(int left, int top)
+{
 	byte keyboardState[256];
 	if (GetDeviceState(keyboard, sizeof(BYTE)* 256, &keyboardState))
 	{
-		str << ++m_controlerNumber;
-		str << ". KEYBOARD\n";
+		UINT32 color = m_controlerNumber == m_highlitedIndex ? 0xffff992f : 0xf500992f;
+		wstringstream keyboardStr;
+		keyboardStr << ++m_controlerNumber;
+		keyboardStr << ". KEYBOARD + MOUSE\n";
+		m_font->DrawString(m_context.get(), keyboardStr.str().c_str(), 20.0f, left, top, color, FW1_RESTORESTATE | FW1_NOGEOMETRYSHADER);
+		return true;
 	}
+	return false;
+}
 
+bool INScene::RenderControlerMenuJoystick(int left, int top)
+{
 	DIJOYSTATE2 state;
 	if (GetDeviceState(joystick, sizeof(DIJOYSTATE2), &state))
 	{
-		str << ++m_controlerNumber;
-		str << ". JOYSTICK\n";
+		UINT32 color = m_controlerNumber == m_highlitedIndex ? 0xffff992f : 0xf500992f;
+		wstringstream joystickStr;
+		joystickStr << ++m_controlerNumber;
+		joystickStr << ". JOYSTICK\n";
+		m_font->DrawString(m_context.get(), joystickStr.str().c_str(), 20.0f, left, top, color, FW1_RESTORESTATE | FW1_NOGEOMETRYSHADER);
+		return true;
 	}
-
-	m_font->DrawString(m_context.get(), str.str().c_str(), 20.0f, left, top, 0xf500992f, FW1_RESTORESTATE | FW1_NOGEOMETRYSHADER);
+	return false;
 }
 
 void INScene::RenderKeyboard()
 {
-	if (!m_renderKeyboard) return;
+	if (!m_renderButtons) return;
 
 	RECT tarWnd;
 	GetClientRect(m_window.getHandle(), &tarWnd);
