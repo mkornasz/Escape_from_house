@@ -468,6 +468,7 @@ void INScene::ChooseButton(BYTE keyboardState[256])
 	{
 		if (keyboardState[i])
 		{
+			if (CheckPreviousButtons(m_highlitedIndex, i))break;
 			m_buttons[m_highlitedIndex] = i;
 			m_highlitedIndex++;
 			if (m_highlitedIndex > m_maxButtonIndex)
@@ -475,6 +476,16 @@ void INScene::ChooseButton(BYTE keyboardState[256])
 			return;
 		}
 	}
+}
+
+bool INScene::CheckPreviousButtons(int currentIndex, int key)
+{
+	for (int i = 0; i < currentIndex; i++)
+	{
+		if (m_buttons[i] == key)
+			return true;
+	}
+	return false;
 }
 
 void INScene::RenderControlerMenu()

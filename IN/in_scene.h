@@ -71,6 +71,10 @@ namespace mini
 		void ChooseControler(BYTE keyboardState[256]);
 		//Choose a button responsible for certain action
 		void ChooseButton(BYTE keyboardState[256]);
+		//Checks previously set buttons to prevent from setting the same key to number of different actions
+		//Returns true if key was set before
+		bool CheckPreviousButtons(int currentIndex, int key);
+
 		//Render controler chooser menu
 		void RenderControlerMenu();
 		//Renders Keyboard in the controler menu and returns true if it's available

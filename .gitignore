@@ -81,3 +81,4 @@ IN.sln.GhostDoc.xml
 *.sdf
 *.sdf
 *.vcxproj
+*.opensdf
