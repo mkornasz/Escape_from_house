@@ -46,6 +46,8 @@ void INScene::InitializeInput()
 		|| FAILED(joystick->GetCapabilities(&m_capabilities))
 		|| FAILED(joystick->Acquire()))
 		throw new exception("Cannot initialize joystick");
+
+	//InitializeJoystickRange();
 }
 
 void INScene::InitializeEnvironment()
@@ -71,8 +73,28 @@ void INScene::InitializeEnvironment()
 	m_buttonsStrings[Down] = "Down";
 	m_buttonsStrings[Left] = "Left";
 	m_buttonsStrings[Right] = "Right";
+
 	m_buttonsStrings[Return] = "Open the door";
 	m_buttonsStrings[Menu] = "Menu";
+
+	m_buttonsStrings[UpRotate] = "UpRotate";
+	m_buttonsStrings[DownRotate] = "DownRotate";
+	m_buttonsStrings[LeftRotate] = "LeftRotate";
+	m_buttonsStrings[RightRotate] = "RightRotate";
+}
+
+void INScene::InitializeJoystickRange()
+{
+	DIPROPRANGE diprg;
+	diprg.diph.dwSize = sizeof(DIPROPRANGE);
+	diprg.diph.dwHeaderSize = sizeof(DIPROPHEADER);
+	diprg.diph.dwHow = DIPH_BYID;
+	diprg.diph.dwObj = m_capabilities.dwDevType;
+	diprg.lMin = -1000;
+	diprg.lMax = +1000;
+
+	if (FAILED(joystick->SetProperty(DIPROP_RANGE, &diprg.diph)))
+		throw new exception("Cannot initialize joystick");
 }
 
 void INScene::Shutdown()
@@ -208,12 +230,45 @@ void INScene::HandleJoystickChangeDI(float dt)
 	DIJOYSTATE2 state;
 	if (GetDeviceState(joystick, sizeof(DIJOYSTATE2), &state))
 	{
-		float cc = state.lX - MaxAxisRange;
-		float ccs = state.lY - MaxAxisRange;
-		float x = (state.lX - MaxAxisRange) * 0.002 / MaxAxisRange;
-		float y = (state.lY - MaxAxisRange) * 0.002 / MaxAxisRange;
-		MoveCharacter(x, y);
+		if (m_renderButtons)
+		{
+			ChooseButtonJoystick(state);
+			return;
+		}
+
+		if (CheckJoystickState(state, Menu))
+			m_showControlers = !m_showControlers;
+
+		if (CheckJoystickState(state, Up))
+			MoveCharacter(0, dt);
+		else if (CheckJoystickState(state, Down))
+			MoveCharacter(0, -dt);
+
+		if (CheckJoystickState(state, Left))
+			MoveCharacter(-dt, 0);
+		else if (CheckJoystickState(state, Right))
+			MoveCharacter(dt, 0);
+
+		if (CheckJoystickState(state, Return) && DistanceToDoor() < 1.0f && FacingDoor() && !m_isReturnDown)
+		{
+			ToggleDoor();
+			m_isReturnDown = true;
+		}
 	}
+}
+
+bool INScene::CheckJoystickState(DIJOYSTATE2 state, int value)
+{
+	if (m_buttons[value] >= 0 && state.rgbButtons[m_buttons[value]]
+		|| m_buttons[value] == XAxisDown && state.lX - MaxAxisRange > IgnoreRange
+		|| m_buttons[value] == YAxisDown && state.lY - MaxAxisRange > IgnoreRange
+		|| m_buttons[value] == ZAxisDown && state.lZ - MaxAxisRange > IgnoreRange
+		|| m_buttons[value] == XAxisUp && state.lX - MaxAxisRange < -IgnoreRange
+		|| m_buttons[value] == YAxisUp && state.lY - MaxAxisRange < -IgnoreRange
+		|| m_buttons[value] == ZAxisUp && state.lZ - MaxAxisRange < -IgnoreRange)
+		return true;
+
+	return false;
 }
 
 bool INScene::GetDeviceState(IDirectInputDevice8* pDevice,
@@ -475,6 +530,51 @@ void INScene::ChooseButton(BYTE keyboardState[256])
 				m_renderButtons = false;
 			return;
 		}
+	}
+}
+
+void INScene::ChooseButtonJoystick(DIJOYSTATE2 state)
+{
+	for (int i = 0; i < m_capabilities.dwButtons; i++)
+	{
+		if (state.rgbButtons[i])
+		{
+			SetButton(i);
+			return;
+		}
+	}
+	//MoveCharacter(x, y); m_camera.Rotate(y,x); }
+	/*for (int i = 0; i < m_capabilities.dwPOVs; i++)
+	{
+	if (state.rgdwPOV[i] != 429490)
+	{
+	SetButton(i);
+	return;
+	}
+	}*/
+	if (state.lX - MaxAxisRange > IgnoreRange)
+		SetButton(XAxisDown);
+	else if (state.lX - MaxAxisRange < -IgnoreRange)
+		SetButton(XAxisUp);
+	else if (state.lY - MaxAxisRange > IgnoreRange)
+		SetButton(YAxisDown);
+	else if (state.lY - MaxAxisRange < -IgnoreRange)
+		SetButton(YAxisUp);
+	else if (state.lZ > 0 && state.lZ - MaxAxisRange > IgnoreRange)
+		SetButton(ZAxisDown);
+	else if (state.lZ > 0 && state.lZ - MaxAxisRange < -IgnoreRange)
+		SetButton(ZAxisUp);
+}
+
+void INScene::SetButton(int value)
+{
+	if (CheckPreviousButtons(m_highlitedIndex, value))return;
+	m_buttons[m_highlitedIndex] = value;
+	m_highlitedIndex++;
+	if (m_highlitedIndex > m_maxButtonIndex)
+	{
+		m_renderButtons = false;
+		m_highlitedIndex = 0;
 	}
 }
 

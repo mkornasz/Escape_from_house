@@ -64,16 +64,25 @@ namespace mini
 		void HandleKeyboardChangeDI(float dt);
 		// Handle joystick changes using DirectX API
 		void HandleJoystickChangeDI(float dt);
+		//Checks the joystick for current value
+		bool CheckJoystickState(DIJOYSTATE2 state, int value);
 
 		//Initialize all variables
 		void InitializeEnvironment();
+		//Sets the joystick range
+		void InitializeJoystickRange();
+
 		// Choose the available controler
 		void ChooseControler(BYTE keyboardState[256]);
 		//Choose a button responsible for certain action
 		void ChooseButton(BYTE keyboardState[256]);
+		//Choose a button or handle responsible for certain action
+		void ChooseButtonJoystick(DIJOYSTATE2 state);
 		//Checks previously set buttons to prevent from setting the same key to number of different actions
 		//Returns true if key was set before
 		bool CheckPreviousButtons(int currentIndex, int key);
+		//Set button value
+		void SetButton(int value);
 
 		//Render controler chooser menu
 		void RenderControlerMenu();
@@ -123,7 +132,11 @@ namespace mini
 
 		static const unsigned int GET_STATE_RETRIES = 2;
 		static const unsigned int ACQUIRE_RETRIES = 2;
-		static const unsigned int MaxAxisRange = 32767;
+
+		//Max axis range
+		static const int MaxAxisRange = 32767;
+		//Axis range to ignore
+		static const int IgnoreRange = 32767 * 0.2;
 
 		//Should show available controlers
 		bool m_showControlers;
@@ -140,24 +153,27 @@ namespace mini
 		bool m_renderButtons;
 
 		//Keys corresponding to used buttons
-		int m_buttons[6];
+		int m_buttons[10];
 		//Names of the buttons
-		char* m_buttonsStrings[6];
+		char* m_buttonsStrings[10];
 
 		//Available controlers
 		enum Controlers
 		{
 			Keyboard, Joystick
 		};
-		//Available camera rotations
-		enum CameraRotation
-		{
-			UpRotate, DownRotate, LeftRotate, RightRotate
-		};
 		//Available buttons
 		enum Buttons
 		{
-			Up, Down, Left, Right, Return, Menu
+			Up, Down, Left, Right, Return, Menu, UpRotate, DownRotate, LeftRotate, RightRotate
+		};
+		//Enum representing the axis of a joystick
+		enum JoystickAxis
+		{
+			XAxisUp = -100, XAxisDown = -101
+			, YAxisUp = -200, YAxisDown = -201
+			, ZAxisUp = -300, ZAxisDown = -301
+			, POV1 = -400
 		};
 	};
 }
