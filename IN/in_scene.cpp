@@ -230,6 +230,11 @@ void INScene::HandleJoystickChangeDI(float dt)
 	DIJOYSTATE2 state;
 	if (GetDeviceState(joystick, sizeof(DIJOYSTATE2), &state))
 	{
+		if (m_showControlers)
+		{
+			ChooseControlerJoystick(state);
+			return;
+		}
 		if (m_renderButtons)
 		{
 			ChooseButtonJoystick(state);
@@ -237,7 +242,10 @@ void INScene::HandleJoystickChangeDI(float dt)
 		}
 
 		if (CheckJoystickState(state, Menu))
+		{
 			m_showControlers = !m_showControlers;
+			m_highlitedIndex = 0;
+		}
 
 		if (CheckJoystickState(state, Up))
 			MoveCharacter(0, dt);
@@ -526,6 +534,34 @@ void INScene::ChooseControler(BYTE keyboardState[256])
 	}
 }
 
+void INScene::ChooseControlerJoystick(DIJOYSTATE2 state)
+{
+	if (m_controlerNumber > 0)
+	if (CheckJoystickState(state, Up))
+	{
+		m_highlitedIndex = (m_highlitedIndex - 1 + m_controlerNumber) % m_controlerNumber;
+		return;
+	}
+	else if (CheckJoystickState(state, Down))
+	{
+		m_highlitedIndex = (m_highlitedIndex + 1) % m_controlerNumber;
+		return;
+	}
+	else if (CheckJoystickState(state, Return))
+	{
+		m_chosenControler = m_highlitedIndex;
+		m_showControlers = false;
+		m_renderButtons = true;
+		m_maxButtonIndex = 4 * (m_highlitedIndex + 1) + 1;
+		m_highlitedIndex = 0;
+	}
+	else if (CheckJoystickState(state, Menu))
+	{
+		m_showControlers = false;
+		m_highlitedIndex = 0;
+	}
+}
+
 void INScene::ChooseButton(BYTE keyboardState[256])
 {
 	for (int i = 0; i < 256; i++)
@@ -552,15 +588,14 @@ void INScene::ChooseButtonJoystick(DIJOYSTATE2 state)
 			return;
 		}
 	}
-	//MoveCharacter(x, y); m_camera.Rotate(y,x); }
-	/*for (int i = 0; i < m_capabilities.dwPOVs; i++)
+	for (int i = 0; i < m_capabilities.dwPOVs; i++)
 	{
-	if (state.rgdwPOV[i] != 429490)
-	{
-	SetButton(i);
-	return;
+		if (state.rgdwPOV[i] != 4294967295)
+		{
+			SetButton(i);
+			return;
+		}
 	}
-	}*/
 	if (state.lX - MaxAxisRange > IgnoreRange)
 		SetButton(XAxisDown);
 	else if (state.lX - MaxAxisRange < -IgnoreRange)
@@ -623,7 +658,7 @@ bool INScene::RenderControlerMenuKeyboard(int left, int top)
 	byte keyboardState[256];
 	if (GetDeviceState(keyboard, sizeof(BYTE)* 256, &keyboardState))
 	{
-		UINT32 color = m_chosenControler == m_highlitedIndex ? 0xffff992f : 0xf500992f;
+		UINT32 color = m_controlerNumber == m_highlitedIndex ? 0xffff992f : 0xf500992f;
 		wstringstream keyboardStr;
 		keyboardStr << ++m_controlerNumber;
 		keyboardStr << ". KEYBOARD + MOUSE\n";

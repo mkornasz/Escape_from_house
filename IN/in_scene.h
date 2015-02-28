@@ -74,6 +74,8 @@ namespace mini
 
 		// Choose the available controler
 		void ChooseControler(BYTE keyboardState[256]);
+		// Choose the available controler with joystick
+		void ChooseControlerJoystick(DIJOYSTATE2 state);
 		//Choose a button responsible for certain action
 		void ChooseButton(BYTE keyboardState[256]);
 		//Choose a button or handle responsible for certain action
@@ -167,13 +169,13 @@ namespace mini
 		{
 			Up, Down, Left, Right, Return, Menu, UpRotate, DownRotate, LeftRotate, RightRotate
 		};
-		//Enum representing the axis of a joystick
-		enum JoystickAxis
+		//Enum representing the axis and buttons of a joystick
+		enum JoystickAxisButtons
 		{
 			XAxisUp = -100, XAxisDown = -101
 			, YAxisUp = -200, YAxisDown = -201
 			, ZAxisUp = -300, ZAxisDown = -301
-			, POV1 = -400
+			, POV0 = -400, POV1 = -401, POV2 = -402, POV3 = -403
 		};
 	};
 }
