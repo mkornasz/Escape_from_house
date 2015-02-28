@@ -55,15 +55,24 @@ void INScene::InitializeEnvironment()
 	m_lastMousePosition = POINT();
 
 	m_showControlers = false;
+	m_renderButtons = false;
 	m_chosenControler = Keyboard;
 	m_highlitedIndex = 0;
 
-	m_up = DIK_UP;
-	m_down = DIK_DOWN;
-	m_left = DIK_LEFT;
-	m_right = DIK_RIGHT;
-	m_open = DIK_RETURN;
-	m_menu = DIK_ESCAPE;
+	m_buttons[Up] = DIK_UP;
+	m_buttons[Down] = DIK_DOWN;
+	m_buttons[Left] = DIK_LEFT;
+	m_buttons[Right] = DIK_RIGHT;
+
+	m_buttons[Return] = DIK_RETURN;
+	m_buttons[Menu] = DIK_ESCAPE;
+
+	m_buttonsStrings[Up] = "Up";
+	m_buttonsStrings[Down] = "Down";
+	m_buttonsStrings[Left] = "Left";
+	m_buttonsStrings[Right] = "Right";
+	m_buttonsStrings[Return] = "Open the door";
+	m_buttonsStrings[Menu] = "Menu";
 }
 
 void INScene::Shutdown()
@@ -168,20 +177,25 @@ void INScene::HandleKeyboardChangeDI(float dt)
 			ChooseControler(keyboardState);
 			return;
 		}
-		if (keyboardState[m_menu])
+		else if (m_renderButtons)
+		{
+			ChooseButton(keyboardState);
+			return;
+		}
+		if (keyboardState[m_buttons[Menu]])
 			m_showControlers = !m_showControlers;
 
-		if (keyboardState[m_up])
+		if (keyboardState[m_buttons[Up]])
 			MoveCharacter(0, dt);
-		else if (keyboardState[m_down])
+		else if (keyboardState[m_buttons[Down]])
 			MoveCharacter(0, -dt);
 
-		if (keyboardState[m_left])
+		if (keyboardState[m_buttons[Left]])
 			MoveCharacter(-dt, 0);
-		else if (keyboardState[m_right])
+		else if (keyboardState[m_buttons[Right]])
 			MoveCharacter(dt, 0);
 
-		if (keyboardState[m_open] && DistanceToDoor() < 1.0f && FacingDoor() && !m_isReturnDown)
+		if (keyboardState[m_buttons[Return]] && DistanceToDoor() < 1.0f && FacingDoor() && !m_isReturnDown)
 		{
 			ToggleDoor();
 			m_isReturnDown = true;
@@ -338,6 +352,7 @@ void INScene::Render()
 	}
 	RenderText();
 	RenderControlerMenu();
+	RenderButtons();
 }
 
 void INScene::OpenDoor()
@@ -422,27 +437,43 @@ float INScene::DistanceToDoor()
 void INScene::ChooseControler(BYTE keyboardState[256])
 {
 	if (m_controlerNumber > 0)
-	if (keyboardState[m_up])
+	if (keyboardState[m_buttons[Up]])
 	{
 		m_highlitedIndex = (m_highlitedIndex - 1 + m_controlerNumber) % m_controlerNumber;
 		return;
 	}
-	else if (keyboardState[m_down])
+	else if (keyboardState[m_buttons[Down]])
 	{
 		m_highlitedIndex = (m_highlitedIndex + 1) % m_controlerNumber;
 		return;
 	}
-	else if (keyboardState[m_open])
+	else if (keyboardState[m_buttons[Return]])
 	{
 		m_chosenControler = m_highlitedIndex;
 		m_showControlers = false;
 		m_renderButtons = true;
+		m_maxButtonIndex = 4 * (m_highlitedIndex + 1) + 1;
 		m_highlitedIndex = 0;
 	}
-	else if (keyboardState[m_menu])
+	else if (keyboardState[m_buttons[Menu]])
 	{
 		m_showControlers = false;
 		m_highlitedIndex = 0;
+	}
+}
+
+void INScene::ChooseButton(BYTE keyboardState[256])
+{
+	for (int i = 0; i < 256; i++)
+	{
+		if (keyboardState[i])
+		{
+			m_buttons[m_highlitedIndex] = i;
+			m_highlitedIndex++;
+			if (m_highlitedIndex > m_maxButtonIndex)
+				m_renderButtons = false;
+			return;
+		}
 	}
 }
 
@@ -453,12 +484,12 @@ void INScene::RenderControlerMenu()
 	RECT tarWnd;
 	GetClientRect(m_window.getHandle(), &tarWnd);
 	int left = (tarWnd.right - tarWnd.left) / 2 - 100;
-	int top = (tarWnd.bottom - tarWnd.top) / 2 - 100;
+	int top = (tarWnd.bottom - tarWnd.top) / 2 - 150;
 
 	wstringstream str;
-	str << L"Choose the controler: \n";
+	str << L"Choose the controler.\nUse UP/DOWN and RETURN buttons:\n";
 	m_font->DrawString(m_context.get(), str.str().c_str(), 20.0f, left, top, 0xf500992f, FW1_RESTORESTATE | FW1_NOGEOMETRYSHADER);
-	top += 30;
+	top += 60;
 
 	m_controlerNumber = 0;
 	if (RenderControlerMenuKeyboard(left, top))
@@ -472,7 +503,7 @@ bool INScene::RenderControlerMenuKeyboard(int left, int top)
 	byte keyboardState[256];
 	if (GetDeviceState(keyboard, sizeof(BYTE)* 256, &keyboardState))
 	{
-		UINT32 color = m_controlerNumber == m_highlitedIndex ? 0xffff992f : 0xf500992f;
+		UINT32 color = m_chosenControler == m_highlitedIndex ? 0xffff992f : 0xf500992f;
 		wstringstream keyboardStr;
 		keyboardStr << ++m_controlerNumber;
 		keyboardStr << ". KEYBOARD + MOUSE\n";
@@ -497,22 +528,18 @@ bool INScene::RenderControlerMenuJoystick(int left, int top)
 	return false;
 }
 
-void INScene::RenderKeyboard()
+void INScene::RenderButtons()
 {
-	if (!m_renderButtons) return;
+	if (!m_renderButtons || m_highlitedIndex > m_maxButtonIndex) return;
 
 	RECT tarWnd;
 	GetClientRect(m_window.getHandle(), &tarWnd);
-	int left = (tarWnd.right - tarWnd.left) / 2;
-	int top = (tarWnd.bottom - tarWnd.top) / 2;
+	int left = (tarWnd.right - tarWnd.left) / 2 - 100;
+	int top = (tarWnd.bottom - tarWnd.top) / 2 - 150;
 
 	wstringstream str;
-	str << L"Choose the controler: \n";
-
-	m_controlerNumber = 0;
-	byte keyboardState[256];
-	if (GetDeviceState(keyboard, sizeof(BYTE)* 256, &keyboardState))
-		str << ++m_controlerNumber + ". KEYBOARD\n";
+	str << L"Choose the button corresponding to ";
+	str << m_buttonsStrings[m_highlitedIndex];
 
 	m_font->DrawString(m_context.get(), str.str().c_str(), 20.0f, left, top, 0xf500992f, FW1_RESTORESTATE | FW1_NOGEOMETRYSHADER);
 }

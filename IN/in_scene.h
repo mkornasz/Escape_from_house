@@ -11,6 +11,8 @@
 
 #include "dinput.h"
 
+#define MAPENTRY(p) {p, #p}
+
 namespace mini
 {
 	class INScene : public mini::DxApplication
@@ -67,6 +69,8 @@ namespace mini
 		void InitializeEnvironment();
 		// Choose the available controler
 		void ChooseControler(BYTE keyboardState[256]);
+		//Choose a button responsible for certain action
+		void ChooseButton(BYTE keyboardState[256]);
 		//Render controler chooser menu
 		void RenderControlerMenu();
 		//Renders Keyboard in the controler menu and returns true if it's available
@@ -125,23 +129,16 @@ namespace mini
 		int m_chosenControler;
 		//Highlighted index of the controler
 		int m_highlitedIndex;
+		//Maximum button index which can be set (for mouse we don't set camera rotation)
+		int m_maxButtonIndex;
 
 		//Should render buttons chooser menu
 		bool m_renderButtons;
 
-		//Key corresponding to moving the character forward
-		int m_up;
-		//Key corresponding to moving the character backwards
-		int m_down;
-		//Key corresponding to moving the character left
-		int m_left;
-		//Key corresponding to moving the character right
-		int m_right;
-
-		//Key corresponding to opening the door
-		int m_open;
-		//Key corresponding to viewing the menu
-		int m_menu;
+		//Keys corresponding to used buttons
+		int m_buttons[6];
+		//Names of the buttons
+		char* m_buttonsStrings[6];
 
 		//Available controlers
 		enum Controlers
@@ -153,10 +150,10 @@ namespace mini
 		{
 			UpRotate, DownRotate, LeftRotate, RightRotate
 		};
-		//Available character movements
-		enum CharacterMovement
+		//Available buttons
+		enum Buttons
 		{
-			Up, Down, Left, Right
+			Up, Down, Left, Right, Return, Menu
 		};
 	};
 }
