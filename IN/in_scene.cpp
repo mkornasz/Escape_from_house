@@ -254,6 +254,15 @@ void INScene::HandleJoystickChangeDI(float dt)
 			ToggleDoor();
 			m_isReturnDown = true;
 		}
+
+		if (CheckJoystickState(state, UpRotate))
+			m_camera.Rotate(-0.002 * XM_PIDIV4, 0);
+		else if (CheckJoystickState(state, DownRotate))
+			m_camera.Rotate(0.002 * XM_PIDIV4, 0);
+		if (CheckJoystickState(state, RightRotate))
+			m_camera.Rotate(0, 0.002 * XM_PIDIV4);
+		else if (CheckJoystickState(state, LeftRotate))
+			m_camera.Rotate(0, -0.002 * XM_PIDIV4);
 	}
 }
 
