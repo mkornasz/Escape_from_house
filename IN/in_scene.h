@@ -175,7 +175,10 @@ namespace mini
 			XAxisUp = -100, XAxisDown = -101
 			, YAxisUp = -200, YAxisDown = -201
 			, ZAxisUp = -300, ZAxisDown = -301
-			, POV0 = -400, POV1 = -401, POV2 = -402, POV3 = -403
+			, POV00 = -400, POV01 = -401, POV02 = -402, POV03 = -403
+			, POV10 = -410, POV11 = -411, POV12 = -412, POV13 = -413
+			, POV20 = -420, POV21 = -421, POV22 = -422, POV23 = -423
+			, POV30 = -430, POV31 = -431, POV32 = -432, POV33 = -433
 		};
 	};
 }

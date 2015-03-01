@@ -285,7 +285,25 @@ bool INScene::CheckJoystickState(DIJOYSTATE2 state, int value)
 		|| m_buttons[value] == ZAxisUp && state.lZ - MaxAxisRange < -IgnoreRange)
 		return true;
 
-	return false;
+	if (m_buttons[value] == POV00 && state.rgdwPOV[0] == 0
+		|| m_buttons[value] == POV01 && state.rgdwPOV[0] == 9000
+		|| m_buttons[value] == POV02 && state.rgdwPOV[0] == 18000
+		|| m_buttons[value] == POV03 && state.rgdwPOV[0] == 27000
+		|| m_buttons[value] == POV10 && state.rgdwPOV[1] == 0
+		|| m_buttons[value] == POV11 && state.rgdwPOV[1] == 9000
+		|| m_buttons[value] == POV12 && state.rgdwPOV[1] == 18000
+		|| m_buttons[value] == POV13 && state.rgdwPOV[1] == 27000
+		|| m_buttons[value] == POV20 && state.rgdwPOV[2] == 0
+		|| m_buttons[value] == POV21 && state.rgdwPOV[2] == 9000
+		|| m_buttons[value] == POV22 && state.rgdwPOV[2] == 18000
+		|| m_buttons[value] == POV23 && state.rgdwPOV[2] == 27000
+		|| m_buttons[value] == POV30 && state.rgdwPOV[3] == 0
+		|| m_buttons[value] == POV31 && state.rgdwPOV[3] == 9000
+		|| m_buttons[value] == POV32 && state.rgdwPOV[3] == 18000
+		|| m_buttons[value] == POV33 && state.rgdwPOV[3] == 27000)
+		return true;
+
+		return false;
 }
 
 bool INScene::GetDeviceState(IDirectInputDevice8* pDevice,
@@ -592,7 +610,8 @@ void INScene::ChooseButtonJoystick(DIJOYSTATE2 state)
 	{
 		if (state.rgdwPOV[i] != 4294967295)
 		{
-			SetButton(i);
+			int value = -400 - (10 * i) - ((int)state.rgdwPOV[i] / 9000);
+			SetButton(value);
 			return;
 		}
 	}
