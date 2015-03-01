@@ -85,6 +85,8 @@ namespace mini
 		bool CheckPreviousButtons(int currentIndex, int key);
 		//Set button value
 		void SetButton(int value);
+		//Sets the last pressed button
+		void SetLastPressedButton(int button);
 
 		//Render controler chooser menu
 		void RenderControlerMenu();
@@ -120,6 +122,11 @@ namespace mini
 		bool m_isMouseDown;
 		bool m_isReturnDown;
 		POINT m_lastMousePosition;
+
+		//Last pressed button
+		int m_lastPressedButton;
+		//Prevents from hitting the same key multiple times
+		float m_timeLastPressElapsed;
 
 		// DirectX input
 		IDirectInput8 * di;

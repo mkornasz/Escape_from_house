@@ -56,6 +56,9 @@ void INScene::InitializeEnvironment()
 	m_isReturnDown = false;
 	m_lastMousePosition = POINT();
 
+	m_lastPressedButton = -1;
+	m_timeLastPressElapsed = 0;
+
 	m_showControlers = false;
 	m_renderButtons = false;
 	m_chosenControler = Keyboard;
@@ -191,6 +194,10 @@ void INScene::HandleKeyboardChange(float dt)
 
 void INScene::HandleKeyboardChangeDI(float dt)
 {
+	m_timeLastPressElapsed += dt;
+	if (m_timeLastPressElapsed > 0.5)
+		SetLastPressedButton(-1);
+
 	BYTE keyboardState[256];
 	if (GetDeviceState(keyboard, sizeof(BYTE)* 256, &keyboardState))
 	{
@@ -204,8 +211,11 @@ void INScene::HandleKeyboardChangeDI(float dt)
 			ChooseButton(keyboardState);
 			return;
 		}
-		if (keyboardState[m_buttons[Menu]])
+		if (keyboardState[m_buttons[Menu]] && !(m_lastPressedButton == Menu))
+		{
 			m_showControlers = !m_showControlers;
+			SetLastPressedButton(Menu);
+		}
 
 		if (keyboardState[m_buttons[Up]])
 			MoveCharacter(0, dt);
@@ -227,6 +237,10 @@ void INScene::HandleKeyboardChangeDI(float dt)
 
 void INScene::HandleJoystickChangeDI(float dt)
 {
+	m_timeLastPressElapsed += dt;
+	if (m_timeLastPressElapsed > 0.5)
+		SetLastPressedButton(-1);
+
 	DIJOYSTATE2 state;
 	if (GetDeviceState(joystick, sizeof(DIJOYSTATE2), &state))
 	{
@@ -241,10 +255,11 @@ void INScene::HandleJoystickChangeDI(float dt)
 			return;
 		}
 
-		if (CheckJoystickState(state, Menu))
+		if (CheckJoystickState(state, Menu) && !(m_lastPressedButton == Menu))
 		{
 			m_showControlers = !m_showControlers;
 			m_highlitedIndex = 0;
+			SetLastPressedButton(Menu);
 		}
 
 		if (CheckJoystickState(state, Up))
@@ -303,7 +318,7 @@ bool INScene::CheckJoystickState(DIJOYSTATE2 state, int value)
 		|| m_buttons[value] == POV33 && state.rgdwPOV[3] == 27000)
 		return true;
 
-		return false;
+	return false;
 }
 
 bool INScene::GetDeviceState(IDirectInputDevice8* pDevice,
@@ -527,27 +542,31 @@ float INScene::DistanceToDoor()
 void INScene::ChooseControler(BYTE keyboardState[256])
 {
 	if (m_controlerNumber > 0)
-	if (keyboardState[m_buttons[Up]])
+	if (keyboardState[m_buttons[Up]] && !(m_lastPressedButton == Up))
 	{
 		m_highlitedIndex = (m_highlitedIndex - 1 + m_controlerNumber) % m_controlerNumber;
+		SetLastPressedButton(Up);
 		return;
 	}
-	else if (keyboardState[m_buttons[Down]])
+	else if (keyboardState[m_buttons[Down]] && !(m_lastPressedButton == Down))
 	{
 		m_highlitedIndex = (m_highlitedIndex + 1) % m_controlerNumber;
+		SetLastPressedButton(Down);
 		return;
 	}
-	else if (keyboardState[m_buttons[Return]])
+	else if (keyboardState[m_buttons[Return]] && !(m_lastPressedButton == Return))
 	{
 		m_chosenControler = m_highlitedIndex;
 		m_showControlers = false;
 		m_renderButtons = true;
 		m_maxButtonIndex = 4 * (m_highlitedIndex + 1) + 1;
 		m_highlitedIndex = 0;
+		SetLastPressedButton(Return);
 	}
-	else if (keyboardState[m_buttons[Menu]])
+	else if (keyboardState[m_buttons[Menu]] && !(m_lastPressedButton == Menu))
 	{
 		m_showControlers = false;
+		SetLastPressedButton(Menu);
 		m_highlitedIndex = 0;
 	}
 }
@@ -555,29 +574,39 @@ void INScene::ChooseControler(BYTE keyboardState[256])
 void INScene::ChooseControlerJoystick(DIJOYSTATE2 state)
 {
 	if (m_controlerNumber > 0)
-	if (CheckJoystickState(state, Up))
+	if (CheckJoystickState(state, Up) && !(m_lastPressedButton == Up))
 	{
 		m_highlitedIndex = (m_highlitedIndex - 1 + m_controlerNumber) % m_controlerNumber;
+		SetLastPressedButton(Up);
 		return;
 	}
-	else if (CheckJoystickState(state, Down))
+	else if (CheckJoystickState(state, Down) && !(m_lastPressedButton == Down))
 	{
 		m_highlitedIndex = (m_highlitedIndex + 1) % m_controlerNumber;
+		SetLastPressedButton(Down);
 		return;
 	}
-	else if (CheckJoystickState(state, Return))
+	else if (CheckJoystickState(state, Return) && !(m_lastPressedButton == Return))
 	{
 		m_chosenControler = m_highlitedIndex;
 		m_showControlers = false;
 		m_renderButtons = true;
 		m_maxButtonIndex = 4 * (m_highlitedIndex + 1) + 1;
 		m_highlitedIndex = 0;
+		SetLastPressedButton(Return);
 	}
-	else if (CheckJoystickState(state, Menu))
+	else if (CheckJoystickState(state, Menu) && !(m_lastPressedButton == Menu))
 	{
 		m_showControlers = false;
 		m_highlitedIndex = 0;
+		SetLastPressedButton(Menu);
 	}
+}
+
+void INScene::SetLastPressedButton(int button)
+{
+	m_lastPressedButton = button;
+	m_timeLastPressElapsed = 0;
 }
 
 void INScene::ChooseButton(BYTE keyboardState[256])
@@ -631,8 +660,9 @@ void INScene::ChooseButtonJoystick(DIJOYSTATE2 state)
 
 void INScene::SetButton(int value)
 {
-	if (CheckPreviousButtons(m_highlitedIndex, value))return;
+	if (CheckPreviousButtons(m_highlitedIndex, value) || m_lastPressedButton == m_highlitedIndex)return;
 	m_buttons[m_highlitedIndex] = value;
+	SetLastPressedButton(m_highlitedIndex);
 	m_highlitedIndex++;
 	if (m_highlitedIndex > m_maxButtonIndex)
 	{
