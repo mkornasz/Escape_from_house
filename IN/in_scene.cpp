@@ -292,12 +292,22 @@ void INScene::HandleJoystickChangeDI(float dt)
 bool INScene::CheckJoystickState(DIJOYSTATE2 state, int value)
 {
 	if (m_buttons[value] >= 0 && state.rgbButtons[m_buttons[value]]
-		|| m_buttons[value] == XAxisDown && state.lX - MaxAxisRange > IgnoreRange
+	|| m_buttons[value] == XAxisDown && state.lX - MaxAxisRange > IgnoreRange
 		|| m_buttons[value] == YAxisDown && state.lY - MaxAxisRange > IgnoreRange
 		|| m_buttons[value] == ZAxisDown && state.lZ - MaxAxisRange > IgnoreRange
 		|| m_buttons[value] == XAxisUp && state.lX - MaxAxisRange < -IgnoreRange
 		|| m_buttons[value] == YAxisUp && state.lY - MaxAxisRange < -IgnoreRange
-		|| m_buttons[value] == ZAxisUp && state.lZ - MaxAxisRange < -IgnoreRange)
+		|| m_buttons[value] == ZAxisUp && state.lZ - MaxAxisRange < -IgnoreRange
+		|| m_buttons[value] == XAxisRotateLeft && state.lRx - MaxAxisRange < -IgnoreRange
+		|| m_buttons[value] == XAxisRotateRight && state.lRx - MaxAxisRange > IgnoreRange
+		|| m_buttons[value] == YAxisRotateLeft && state.lRy - MaxAxisRange < -IgnoreRange
+		|| m_buttons[value] == YAxisRotateRight && state.lRy - MaxAxisRange > IgnoreRange
+		|| m_buttons[value] == ZAxisRotateLeft && state.lRz - MaxAxisRange < -IgnoreRange
+		|| m_buttons[value] == ZAxisRotateRight && state.lRz - MaxAxisRange > IgnoreRange
+		|| m_buttons[value] == SliderUp && state.rglSlider[0] - MaxAxisRange < -IgnoreRange
+		|| m_buttons[value] == SliderDown && state.rglSlider[0] - MaxAxisRange > IgnoreRange
+		|| m_buttons[value] == Slider1Up && state.rglSlider[1] - MaxAxisRange < -IgnoreRange
+		|| m_buttons[value] == Slider1Down && state.rglSlider[1] - MaxAxisRange > IgnoreRange)
 		return true;
 
 	if (m_buttons[value] == POV00 && state.rgdwPOV[0] == 0
@@ -322,7 +332,7 @@ bool INScene::CheckJoystickState(DIJOYSTATE2 state, int value)
 }
 
 bool INScene::GetDeviceState(IDirectInputDevice8* pDevice,
-	unsigned int size, void* ptr)
+							 unsigned int size, void* ptr)
 {
 	if (!pDevice)
 		return false;
@@ -542,65 +552,65 @@ float INScene::DistanceToDoor()
 void INScene::ChooseControler(BYTE keyboardState[256])
 {
 	if (m_controlerNumber > 0)
-	if (keyboardState[m_buttons[Up]] && !(m_lastPressedButton == Up))
-	{
-		m_highlitedIndex = (m_highlitedIndex - 1 + m_controlerNumber) % m_controlerNumber;
-		SetLastPressedButton(Up);
-		return;
-	}
-	else if (keyboardState[m_buttons[Down]] && !(m_lastPressedButton == Down))
-	{
-		m_highlitedIndex = (m_highlitedIndex + 1) % m_controlerNumber;
-		SetLastPressedButton(Down);
-		return;
-	}
-	else if (keyboardState[m_buttons[Return]] && !(m_lastPressedButton == Return))
-	{
-		m_chosenControler = m_highlitedIndex;
-		m_showControlers = false;
-		m_renderButtons = true;
-		m_maxButtonIndex = 4 * (m_highlitedIndex + 1) + 1;
-		m_highlitedIndex = 0;
-		SetLastPressedButton(Return);
-	}
-	else if (keyboardState[m_buttons[Menu]] && !(m_lastPressedButton == Menu))
-	{
-		m_showControlers = false;
-		SetLastPressedButton(Menu);
-		m_highlitedIndex = 0;
-	}
+		if (keyboardState[m_buttons[Up]] && !(m_lastPressedButton == Up))
+		{
+			m_highlitedIndex = (m_highlitedIndex - 1 + m_controlerNumber) % m_controlerNumber;
+			SetLastPressedButton(Up);
+			return;
+		}
+		else if (keyboardState[m_buttons[Down]] && !(m_lastPressedButton == Down))
+		{
+			m_highlitedIndex = (m_highlitedIndex + 1) % m_controlerNumber;
+			SetLastPressedButton(Down);
+			return;
+		}
+		else if (keyboardState[m_buttons[Return]] && !(m_lastPressedButton == Return))
+		{
+			m_chosenControler = m_highlitedIndex;
+			m_showControlers = false;
+			m_renderButtons = true;
+			m_maxButtonIndex = 4 * (m_highlitedIndex + 1) + 1;
+			m_highlitedIndex = 0;
+			SetLastPressedButton(Return);
+		}
+		else if (keyboardState[m_buttons[Menu]] && !(m_lastPressedButton == Menu))
+		{
+			m_showControlers = false;
+			SetLastPressedButton(Menu);
+			m_highlitedIndex = 0;
+		}
 }
 
 void INScene::ChooseControlerJoystick(DIJOYSTATE2 state)
 {
 	if (m_controlerNumber > 0)
-	if (CheckJoystickState(state, Up) && !(m_lastPressedButton == Up))
-	{
-		m_highlitedIndex = (m_highlitedIndex - 1 + m_controlerNumber) % m_controlerNumber;
-		SetLastPressedButton(Up);
-		return;
-	}
-	else if (CheckJoystickState(state, Down) && !(m_lastPressedButton == Down))
-	{
-		m_highlitedIndex = (m_highlitedIndex + 1) % m_controlerNumber;
-		SetLastPressedButton(Down);
-		return;
-	}
-	else if (CheckJoystickState(state, Return) && !(m_lastPressedButton == Return))
-	{
-		m_chosenControler = m_highlitedIndex;
-		m_showControlers = false;
-		m_renderButtons = true;
-		m_maxButtonIndex = 4 * (m_highlitedIndex + 1) + 1;
-		m_highlitedIndex = 0;
-		SetLastPressedButton(Return);
-	}
-	else if (CheckJoystickState(state, Menu) && !(m_lastPressedButton == Menu))
-	{
-		m_showControlers = false;
-		m_highlitedIndex = 0;
-		SetLastPressedButton(Menu);
-	}
+		if (CheckJoystickState(state, Up) && !(m_lastPressedButton == Up))
+		{
+			m_highlitedIndex = (m_highlitedIndex - 1 + m_controlerNumber) % m_controlerNumber;
+			SetLastPressedButton(Up);
+			return;
+		}
+		else if (CheckJoystickState(state, Down) && !(m_lastPressedButton == Down))
+		{
+			m_highlitedIndex = (m_highlitedIndex + 1) % m_controlerNumber;
+			SetLastPressedButton(Down);
+			return;
+		}
+		else if (CheckJoystickState(state, Return) && !(m_lastPressedButton == Return))
+		{
+			m_chosenControler = m_highlitedIndex;
+			m_showControlers = false;
+			m_renderButtons = true;
+			m_maxButtonIndex = 4 * (m_highlitedIndex + 1) + 1;
+			m_highlitedIndex = 0;
+			SetLastPressedButton(Return);
+		}
+		else if (CheckJoystickState(state, Menu) && !(m_lastPressedButton == Menu))
+		{
+			m_showControlers = false;
+			m_highlitedIndex = 0;
+			SetLastPressedButton(Menu);
+		}
 }
 
 void INScene::SetLastPressedButton(int button)
@@ -644,18 +654,38 @@ void INScene::ChooseButtonJoystick(DIJOYSTATE2 state)
 			return;
 		}
 	}
-	if (state.lX - MaxAxisRange > IgnoreRange)
+	if (state.lX > 0 && state.lX - MaxAxisRange > IgnoreRange)
 		SetButton(XAxisDown);
-	else if (state.lX - MaxAxisRange < -IgnoreRange)
+	else if (state.lX > 0 && state.lX - MaxAxisRange < -IgnoreRange)
 		SetButton(XAxisUp);
-	else if (state.lY - MaxAxisRange > IgnoreRange)
+	else if (state.lY > 0 && state.lY - MaxAxisRange > IgnoreRange)
 		SetButton(YAxisDown);
-	else if (state.lY - MaxAxisRange < -IgnoreRange)
+	else if (state.lY > 0 && state.lY - MaxAxisRange < -IgnoreRange)
 		SetButton(YAxisUp);
 	else if (state.lZ > 0 && state.lZ - MaxAxisRange > IgnoreRange)
 		SetButton(ZAxisDown);
 	else if (state.lZ > 0 && state.lZ - MaxAxisRange < -IgnoreRange)
 		SetButton(ZAxisUp);
+	else if (state.lRx > 0 && state.lRx - MaxAxisRange > IgnoreRange)
+		SetButton(XAxisRotateRight);
+	else if (state.lRx > 0 && state.lRx - MaxAxisRange < -IgnoreRange)
+		SetButton(XAxisRotateLeft);
+	else if (state.lRy > 0 && state.lRy - MaxAxisRange > IgnoreRange)
+		SetButton(YAxisRotateRight);
+	else if (state.lRy > 0 && state.lRy - MaxAxisRange < -IgnoreRange)
+		SetButton(YAxisRotateLeft);
+	else if (state.lRz > 0 && state.lRz - MaxAxisRange > IgnoreRange)
+		SetButton(ZAxisRotateRight);
+	else if (state.lRz > 0 && state.lRz - MaxAxisRange < -IgnoreRange)
+		SetButton(ZAxisRotateLeft);
+	else if (state.rglSlider > 0 && state.rglSlider[0] > 0 && state.rglSlider[0] - MaxAxisRange > IgnoreRange)
+		SetButton(SliderDown);
+	else if (state.rglSlider > 0 && state.rglSlider[0] > 0 && state.rglSlider[0] - MaxAxisRange < -IgnoreRange)
+		SetButton(SliderUp);
+	else if (state.rglSlider > 0 && state.rglSlider[1] > 0 && state.rglSlider[1] - MaxAxisRange > IgnoreRange)
+		SetButton(SliderDown);
+	else if (state.rglSlider > 0 && state.rglSlider[1] > 0 && state.rglSlider[1] - MaxAxisRange < -IgnoreRange)
+		SetButton(SliderUp);
 }
 
 void INScene::SetButton(int value)

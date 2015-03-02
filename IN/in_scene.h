@@ -145,7 +145,7 @@ namespace mini
 		//Max axis range
 		static const int MaxAxisRange = 32767;
 		//Axis range to ignore
-		static const int IgnoreRange = 32767 * 0.2;
+		static const int IgnoreRange = 32767 * 0.3;
 
 		//Should show available controlers
 		bool m_showControlers;
@@ -179,13 +179,14 @@ namespace mini
 		//Enum representing the axis and buttons of a joystick
 		enum JoystickAxisButtons
 		{
-			XAxisUp = -100, XAxisDown = -101
-			, YAxisUp = -200, YAxisDown = -201
-			, ZAxisUp = -300, ZAxisDown = -301
+			XAxisUp = -100, XAxisDown = -101, XAxisRotateLeft = -102, XAxisRotateRight = -103
+			, YAxisUp = -200, YAxisDown = -201, YAxisRotateLeft = -202, YAxisRotateRight = -203
+			, ZAxisUp = -300, ZAxisDown = -301, ZAxisRotateLeft = -302, ZAxisRotateRight = -303
 			, POV00 = -400, POV01 = -401, POV02 = -402, POV03 = -403
 			, POV10 = -410, POV11 = -411, POV12 = -412, POV13 = -413
 			, POV20 = -420, POV21 = -421, POV22 = -422, POV23 = -423
 			, POV30 = -430, POV31 = -431, POV32 = -432, POV33 = -433
+			, SliderUp = -500, SliderDown = -501, Slider1Up = -502, Slider1Down = -503
 		};
 	};
 }
