@@ -45,7 +45,7 @@ void INScene::InitializeInput()
 		// properties for unavailable axis)
 		|| FAILED(joystick->GetCapabilities(&m_capabilities))
 		|| FAILED(joystick->Acquire()))
-		throw new exception("Cannot initialize joystick");
+		return;
 
 	//InitializeJoystickRange();
 }
@@ -714,6 +714,14 @@ bool INScene::CheckPreviousButtons(int currentIndex, int key)
 void INScene::RenderControlerMenu()
 {
 	if (!m_showControlers) return;
+
+	if(!joystick && FAILED(di->CreateDevice(GUID_Joystick, &joystick, nullptr))
+		|| FAILED(joystick->SetDataFormat(&c_dfDIJoystick2))
+		// Determine how many axis the joystick has (so we don't error out setting
+		// properties for unavailable axis)
+		|| FAILED(joystick->GetCapabilities(&m_capabilities))
+		|| FAILED(joystick->Acquire()))
+		;
 
 	RECT tarWnd;
 	GetClientRect(m_window.getHandle(), &tarWnd);
