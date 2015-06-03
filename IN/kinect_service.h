@@ -1,5 +1,6 @@
 # pragma once
 #include <Windows.h>
+#include "NuiApi.h"
 
 namespace mini
 {
@@ -13,6 +14,7 @@ namespace mini
 		void Shutdown();
 
 		void Nui_GotSkeletonAlert();
+		void SetSysMemSkeletonBuffer(BYTE* buffer);
 
 	private:
 		static DWORD WINAPI     Nui_ProcessThread(LPVOID pParam);
@@ -21,6 +23,6 @@ namespace mini
 		HANDLE      m_hEvNuiProcessStop;
 
 		HANDLE      m_hNextSkeletonEvent;
-		BYTE*		m_pSysMemSkeletonBuffer;
+		BYTE*		m_skeletonBuffer;
 	};
 }

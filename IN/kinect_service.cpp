@@ -1,5 +1,4 @@
 #include "kinect_service.h"
-#include "NuiApi.h"
 
 using namespace mini;
 
@@ -10,7 +9,7 @@ KinectService::KinectService(void)
 	m_hThNuiProcess = NULL;
 	m_hEvNuiProcessStop = NULL;
 
-	m_pSysMemSkeletonBuffer = NULL;
+	m_skeletonBuffer = NULL;
 }
 KinectService::~KinectService(void)
 { }
@@ -110,9 +109,13 @@ void KinectService::Nui_GotSkeletonAlert()
 
 	bool bBlank = true;
 	for (int i = 0; i < NUI_SKELETON_COUNT; i++)
-		if (SkeletonFrame.SkeletonData[i].eTrackingState == NUI_SKELETON_TRACKED && m_pSysMemSkeletonBuffer != NULL)
+		if (SkeletonFrame.SkeletonData[i].eTrackingState == NUI_SKELETON_TRACKED && m_skeletonBuffer != NULL)
 		{
-			memcpy(m_pSysMemSkeletonBuffer, &SkeletonFrame, sizeof(NUI_SKELETON_FRAME));
-			m_pSysMemSkeletonBuffer = NULL;
+			memcpy(m_skeletonBuffer, &SkeletonFrame, sizeof(NUI_SKELETON_FRAME));
+			m_skeletonBuffer = NULL;
 		}
+}
+void KinectService::SetSysMemSkeletonBuffer(BYTE* buffer)
+{
+	m_skeletonBuffer = buffer;
 }

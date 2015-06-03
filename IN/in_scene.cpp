@@ -102,6 +102,9 @@ void INScene::InitializeJoystickRange()
 
 void INScene::Shutdown()
 {
+	delete m_skeleton;
+	m_kinectService->Shutdown();
+
 	/*Release Direct Input resources here*/
 
 	m_font.reset();
@@ -432,6 +435,11 @@ bool INScene::Initialize()
 	m_font.reset(pfw);
 	if (FAILED(result))
 		THROW_DX11(result);
+
+	m_skeleton = new BYTE[sizeof(NUI_SKELETON_FRAME)];
+	m_kinectService = new KinectService();
+	m_kinectService->Initialize();
+	m_kinectService->SetSysMemSkeletonBuffer(m_skeleton);
 
 	InitializeInput();
 	return true;

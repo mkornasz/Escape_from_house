@@ -8,6 +8,7 @@
 #include "FW1\FW1FontWrapper.h"
 #include "mini_material.h"
 #include "mini_fpsCounter.h"
+#include "kinect_service.h"
 
 #include "dinput.h"
 
@@ -188,5 +189,8 @@ namespace mini
 			, POV30 = -430, POV31 = -431, POV32 = -432, POV33 = -433
 			, SliderUp = -500, SliderDown = -501, Slider1Up = -502, Slider1Down = -503
 		};
+
+		KinectService* m_kinectService;
+		BYTE* m_skeleton;
 	};
 }
