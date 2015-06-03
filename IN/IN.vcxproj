@@ -51,13 +51,13 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(DXSDK_DIR)Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Program Files\Microsoft SDKs\Kinect\v1.8\inc;$(DXSDK_DIR)Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(DXSDK_DIR)Lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>d3d11.lib;d3dx11.lib;dxerr.lib;dinput8.lib;dxguid.lib;FW1FontWrapper.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Program Files\Microsoft SDKs\Kinect\v1.8\lib\x86;$(DXSDK_DIR)Lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>d3d11.lib;d3dx11.lib;dxerr.lib;dinput8.lib;dxguid.lib;FW1FontWrapper.lib;Kinect10.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(ProjectDir)textured.hlsl" "$(TargetDir)"
@@ -94,6 +94,7 @@ copy "$(ProjectDir)*.png" "$(TargetDir)"</Command>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="in_scene.cpp" />
+    <ClCompile Include="kinect_service.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mini_camera.cpp" />
     <ClCompile Include="mini_collision.cpp" />
@@ -116,6 +117,7 @@ copy "$(ProjectDir)*.png" "$(TargetDir)"</Command>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="in_scene.h" />
+    <ClInclude Include="kinect_service.h" />
     <ClInclude Include="mini_camera.h" />
     <ClInclude Include="mini_collision.h" />
     <ClInclude Include="mini_constantBuffer.h" />
