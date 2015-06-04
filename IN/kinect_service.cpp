@@ -17,8 +17,7 @@ KinectService::~KinectService(void)
 bool KinectService::Initialize()
 {
 	// Setup Kinectconst
-	HRESULT createResult = NuiCreateSensorByIndex(0, &m_nuiSensor);
-	if (FAILED(createResult))
+	if (FAILED(NuiCreateSensorByIndex(0, &m_nuiSensor)))
 	{
 		MessageBox(0, L"Could not initialize the Kinect device.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		return false;
@@ -48,19 +47,19 @@ bool KinectService::Initialize()
 
 	if (FAILED(CreateSpeechRecognizer()))
 	{
-		MessageBox(0, L"Failed to open audio stream.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
+		MessageBox(0, L"Failed to create speech recogniser.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		return false;
 	}
 
 	if (FAILED(LoadSpeechGrammar()))
 	{
-		MessageBox(0, L"Failed to open audio stream.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
+		MessageBox(0, L"Failed to load speech grammar.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		return false;
 	}
 
 	if (FAILED(StartSpeechRecognition()))
 	{
-		MessageBox(0, L"Failed to open audio stream.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
+		MessageBox(0, L"Failed to start speech recognition.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		return false;
 	}
 
@@ -201,9 +200,6 @@ HRESULT KinectService::InitializeAudioStream()
 				if (SUCCEEDED(hr))
 				{
 					hr = CoCreateInstance(CLSID_SpStream, NULL, CLSCTX_INPROC_SERVER, __uuidof(ISpStream), (void**)&m_speechStream);
-
-					if (SUCCEEDED(hr))
-						hr = m_speechStream->SetBaseStream(pStream, SPDFID_WaveFormatEx, &wfxOut);
 				}
 			}
 
@@ -267,6 +263,15 @@ HRESULT KinectService::CreateSpeechRecognizer()
 	{
 		m_speechRecognizer->SetInput(m_speechStream, FALSE);
 		hr = SpFindBestToken(SPCAT_RECOGNIZERS, L"Language=409;Kinect=True", NULL, &pEngineToken);
+
+		if (hr == S_OK)
+			printf("A");
+		if (hr == REGDB_E_CLASSNOTREG)
+			printf("B");
+		if (hr == CLASS_E_NOAGGREGATION)
+			printf("C");
+		if (hr == SPERR_NOT_FOUND)
+			printf("B");
 
 		if (SUCCEEDED(hr))
 		{

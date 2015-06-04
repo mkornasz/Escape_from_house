@@ -377,6 +377,7 @@ void INScene::RenderText()
 
 bool INScene::Initialize()
 {
+	CoInitialize(nullptr);
 	if (!DxApplication::Initialize())
 		return false;
 	XFileLoader xloader(m_device);
