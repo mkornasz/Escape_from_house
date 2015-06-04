@@ -247,7 +247,7 @@ HRESULT KinectService::LoadSpeechGrammar()
 	if (SUCCEEDED(hr))
 	{
 		// Populate recognition grammar from file
-		LPCWSTR file = L"data/VisCraft-Phrases.grxml";
+		LPCWSTR file = L"data/en-US.grxml";
 		hr = m_speechGrammar->LoadCmdFromFile(file, SPLO_STATIC);
 	}
 
@@ -262,7 +262,7 @@ HRESULT KinectService::CreateSpeechRecognizer()
 	if (SUCCEEDED(hr))
 	{
 		m_speechRecognizer->SetInput(m_speechStream, FALSE);
-		hr = SpFindBestToken(SPCAT_RECOGNIZERS, L"Language=409;Kinect=True", NULL, &pEngineToken);
+		hr = SpFindBestToken(SPCAT_RECOGNIZERS, L"Language=409", NULL, &pEngineToken);
 
 		if (hr == S_OK)
 			printf("A");
