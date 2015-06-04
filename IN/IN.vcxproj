@@ -56,8 +56,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Program Files\Microsoft SDKs\Kinect\v1.8\lib\x86;$(DXSDK_DIR)Lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>d3d11.lib;d3dx11.lib;dxerr.lib;dinput8.lib;dxguid.lib;FW1FontWrapper.lib;Kinect10.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Program Files %28x86%29\Windows Kits\8.1\Lib\winv6.3\um\x86;C:\Program Files\Microsoft SDKs\Kinect\v1.8\lib\x86;$(DXSDK_DIR)Lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>d3d11.lib;d3dx11.lib;dxerr.lib;dinput8.lib;dxguid.lib;FW1FontWrapper.lib;Kinect10.lib;dmoguids.lib;Strmbase.lib;Avrt.lib;Msdmo.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(ProjectDir)textured.hlsl" "$(TargetDir)"
@@ -94,6 +94,7 @@ copy "$(ProjectDir)*.png" "$(TargetDir)"</Command>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="in_scene.cpp" />
+    <ClCompile Include="kinect_audioStream.cpp" />
     <ClCompile Include="kinect_service.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mini_camera.cpp" />
@@ -117,6 +118,7 @@ copy "$(ProjectDir)*.png" "$(TargetDir)"</Command>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="in_scene.h" />
+    <ClInclude Include="kinect_audioStream.h" />
     <ClInclude Include="kinect_service.h" />
     <ClInclude Include="mini_camera.h" />
     <ClInclude Include="mini_collision.h" />

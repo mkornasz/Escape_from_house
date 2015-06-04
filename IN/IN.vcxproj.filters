@@ -78,6 +78,9 @@
     <ClCompile Include="kinect_service.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="kinect_audioStream.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="mini_exceptions.h">
@@ -144,6 +147,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="kinect_service.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="kinect_audioStream.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
