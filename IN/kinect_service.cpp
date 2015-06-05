@@ -38,30 +38,30 @@ bool KinectService::Initialize()
 		return false;
 	}
 
-	// Initialize Audio
-	if (FAILED(InitializeAudioStream()))
-	{
-		MessageBox(0, L"Failed to open audio stream.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
-		return false;
-	}
+	//// Initialize Audio
+	//if (FAILED(InitializeAudioStream()))
+	//{
+	//	MessageBox(0, L"Failed to open audio stream.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
+	//	return false;
+	//}
 
-	if (FAILED(CreateSpeechRecognizer()))
-	{
-		MessageBox(0, L"Failed to create speech recogniser.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
-		return false;
-	}
+	//if (FAILED(CreateSpeechRecognizer()))
+	//{
+	//	MessageBox(0, L"Failed to create speech recogniser.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
+	//	return false;
+	//}
 
-	if (FAILED(LoadSpeechGrammar()))
-	{
-		MessageBox(0, L"Failed to load speech grammar.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
-		return false;
-	}
+	//if (FAILED(LoadSpeechGrammar()))
+	//{
+	//	MessageBox(0, L"Failed to load speech grammar.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
+	//	return false;
+	//}
 
-	if (FAILED(StartSpeechRecognition()))
-	{
-		MessageBox(0, L"Failed to start speech recognition.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
-		return false;
-	}
+	//if (FAILED(StartSpeechRecognition()))
+	//{
+	//	MessageBox(0, L"Failed to start speech recognition.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
+	//	return false;
+	//}
 
 	// Start the Nui processing thread
 	m_nuiProcessStop = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -144,6 +144,10 @@ void KinectService::Nui_GotSkeletonAlert()
 void KinectService::SetSysMemSkeletonBuffer(BYTE* buffer)
 {
 	m_skeletonBuffer = buffer;
+}
+BYTE* KinectService::GetSysMemSkeletonBuffer()
+{
+	return(m_skeletonBuffer);
 }
 HRESULT KinectService::InitializeAudioStream()
 {

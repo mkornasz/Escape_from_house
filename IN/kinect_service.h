@@ -28,7 +28,7 @@ namespace mini
 
 		void Nui_GotSkeletonAlert();
 		void SetSysMemSkeletonBuffer(BYTE* buffer);
-
+		BYTE* GetSysMemSkeletonBuffer();
 	private:
 		static DWORD WINAPI Nui_ProcessThread(LPVOID pParam);
 		HRESULT InitializeAudioStream();

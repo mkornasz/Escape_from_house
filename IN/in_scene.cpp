@@ -61,9 +61,9 @@ void INScene::InitializeEnvironment()
 
 	m_showControlers = false;
 	m_renderButtons = false;
-	m_chosenControler = Keyboard;
+	m_chosenControler = Kinect;
 	m_highlitedIndex = 0;
-
+	m_kinectGesture = -2;
 	m_buttons[Up] = DIK_UP;
 	m_buttons[Down] = DIK_DOWN;
 	m_buttons[Left] = DIK_LEFT;
@@ -125,12 +125,85 @@ void INScene::Shutdown()
 	di->Release();
 }
 
+int INScene::DetectHands(NUI_SKELETON_DATA& data)
+{
+	float yRHand, yLHand, yHead, yRHip, yLHip, yRElbow, yLElbow;
+
+	yHead = data.SkeletonPositions[NUI_SKELETON_POSITION_HEAD].y;
+	yRHand = data.SkeletonPositions[NUI_SKELETON_POSITION_HAND_RIGHT].y;
+	yLHand = data.SkeletonPositions[NUI_SKELETON_POSITION_HAND_LEFT].y;
+	yRElbow = data.SkeletonPositions[NUI_SKELETON_POSITION_ELBOW_RIGHT].y;
+	yLElbow = data.SkeletonPositions[NUI_SKELETON_POSITION_ELBOW_LEFT].y;
+	yRHip = data.SkeletonPositions[NUI_SKELETON_POSITION_HIP_RIGHT].y;
+	yLHip = data.SkeletonPositions[NUI_SKELETON_POSITION_HIP_LEFT].y;
+
+	if (yLHand > yLElbow - 0.1 && yLHand < yLElbow + 0.1 && yRHand > yRElbow - 0.1 && yRHand < yRElbow + 0.1)
+		return -1;
+	if (yLHand > yHead && yRHand > yHead)
+		return 0;
+	else if (yRHand > yHead && yLHand < yLHip)
+		return 2;
+	else if (yLHand > yHead && yRHand < yRHip)
+		return 3;
+	else if (yLHand < yLHip && yRHand < yRHip)
+		return 1;
+	return -1;
+}
+
+
+
+
+void INScene::HandleKinectGestures(float dt)
+{
+	int gestureId;
+
+	if (m_kinectService->GetSysMemSkeletonBuffer() == NULL)
+	{
+		// Our pointer is now filled with data - we need to do something with it.
+		for (int i = 0; i < NUI_SKELETON_COUNT; i++)
+		if (((NUI_SKELETON_FRAME*)m_skeleton)->SkeletonData[i].eTrackingState == NUI_SKELETON_TRACKED)
+			gestureId = DetectHands(((NUI_SKELETON_FRAME*)m_skeleton)->SkeletonData[i]);
+
+		switch (gestureId)
+		{
+		case 0:
+			MoveCharacter(0, 5 * dt);
+			m_kinectGesture = 0;
+			break;
+		case 1:
+			MoveCharacter(0, -5 * dt);
+			m_kinectGesture = 1;
+			break;
+		case 2:
+			MoveCharacter(5 * dt, 0);
+			m_kinectGesture = 2;
+			break;
+		case 3:
+			MoveCharacter(-5 * dt, 0);
+			m_kinectGesture = 3;
+			break;
+		case -1:
+			m_kinectGesture = -1;
+			break;
+		default:
+			m_kinectGesture = -1;
+			break;
+		}
+		// Reset the pointer in the Kinect Manager to allow the next frame to come.
+		m_kinectService->SetSysMemSkeletonBuffer(m_skeleton);
+	}
+
+
+}
+
 void INScene::Update(float dt)
 {
 	/*proccess Direct Input here*/
 
 	switch (m_chosenControler)
 	{
+	case Kinect:
+		HandleKinectGestures(dt);
 	case Keyboard:
 		HandleMouseChangeDI();
 		HandleKeyboardChangeDI(dt);
@@ -362,6 +435,26 @@ void INScene::RenderText()
 {
 	wstringstream str;
 	str << L"FPS: " << m_counter.getCount();
+	switch (m_kinectGesture)
+	{
+	case 0:
+		str << L"\nKINECT: Both hands above head";
+		break;
+	case 1:
+		str << L"\nKINECT: Both hands under hips";
+		break;
+	case 2:
+		str << L"\nKINECT: Right hand above head";
+		break;
+	case 3:
+		str << L"\nKINECT: Left hand above head";
+		break;
+	case -1:
+		str << L"\nKINECT: Both hands horizontal";
+		break;
+	default:
+		break;
+	}
 	m_font->DrawString(m_context.get(), str.str().c_str(), 20.0f, 10.0f, 10.0f, 0xff0099ff, FW1_RESTORESTATE | FW1_NOGEOMETRYSHADER);
 	if (DistanceToDoor() < 1.0f && FacingDoor())
 	{

@@ -52,6 +52,10 @@ namespace mini
 		void UpdateDoor(float dt);
 		void RenderText();
 
+		//Recognize hands positions
+		int DetectHands(NUI_SKELETON_DATA& data);
+		// Handle kinect gestures changes
+		void HandleKinectGestures(float dt);
 		// Handle mouse changes using Windows API
 		void HandleMouseChange(WindowMessage& msg);
 		// Handle keyboard changes using Windows API
@@ -128,7 +132,7 @@ namespace mini
 		int m_lastPressedButton;
 		//Prevents from hitting the same key multiple times
 		float m_timeLastPressElapsed;
-
+		int m_kinectGesture;
 		// DirectX input
 		IDirectInput8 * di;
 		// DirectX mouse device
@@ -170,7 +174,7 @@ namespace mini
 		//Available controlers
 		enum Controlers
 		{
-			Keyboard, Joystick
+			Keyboard, Joystick, Kinect
 		};
 		//Available buttons
 		enum Buttons
