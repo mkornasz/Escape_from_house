@@ -2,12 +2,15 @@
 #include "mini_xfileLoader.h"
 #include "mini_effectLoader.h"
 #include "mini_exceptions.h"
+#include <FaceTrackLib.h>
 #include <sstream>
 
 using namespace std;
 using namespace mini;
 using namespace mini::utils;
 using namespace DirectX;
+
+
 
 bool INScene::ProcessMessage(WindowMessage& msg)
 {
@@ -150,12 +153,54 @@ int INScene::DetectHands(NUI_SKELETON_DATA& data)
 	return -1;
 }
 
+int INScene::DetectHeadAngles(float* data)
+{
+	int result = -1;
+	float pitch = data[0];   //down - up
+	float roll = data[1];
+	float yaw = data[2];  //left-right
 
-
+	if (pitch < -18)
+		return 0;
+	else if (pitch>18)
+		return 1;
+	else if (yaw > 18)
+		return 2;
+	else if (yaw < -18)
+		return 3;
+}
 
 void INScene::HandleKinectGestures(float dt)
 {
 	int gestureId;
+	int headAngleId;
+
+	headAngleId = DetectHeadAngles(m_kinectService->GetFaceBuffers());
+	switch (headAngleId)
+	{
+	case 0:
+		m_camera.Rotate(-0.002 * XM_PIDIV4, 0);
+		//m_kinectGesture = 0;
+		break;
+	case 1:
+		m_camera.Rotate(0.002 * XM_PIDIV4, 0);
+		//m_kinectGesture = 1;
+		break;
+	case 2:
+		m_camera.Rotate(0, 0.002 * XM_PIDIV4);
+		//m_kinectGesture = 2;
+		break;
+	case 3:
+		m_camera.Rotate(0, -0.002 * XM_PIDIV4);
+		//	m_kinectGesture = 3;
+		break;
+	case -1:
+		//	m_kinectGesture = -1;
+		break;
+	default:
+		//	m_kinectGesture = -1;
+		break;
+	}
 
 	if (m_kinectService->GetSysMemSkeletonBuffer() == NULL)
 	{
@@ -368,7 +413,7 @@ void INScene::HandleJoystickChangeDI(float dt)
 bool INScene::CheckJoystickState(DIJOYSTATE2 state, int value)
 {
 	if (m_buttons[value] >= 0 && state.rgbButtons[m_buttons[value]]
-	|| m_buttons[value] == XAxisDown && state.lX - MaxAxisRange > IgnoreRange
+		|| m_buttons[value] == XAxisDown && state.lX - MaxAxisRange > IgnoreRange
 		|| m_buttons[value] == YAxisDown && state.lY - MaxAxisRange > IgnoreRange
 		|| m_buttons[value] == ZAxisDown && state.lZ - MaxAxisRange > IgnoreRange
 		|| m_buttons[value] == XAxisUp && state.lX - MaxAxisRange < -IgnoreRange
@@ -408,7 +453,7 @@ bool INScene::CheckJoystickState(DIJOYSTATE2 state, int value)
 }
 
 bool INScene::GetDeviceState(IDirectInputDevice8* pDevice,
-							 unsigned int size, void* ptr)
+	unsigned int size, void* ptr)
 {
 	if (!pDevice)
 		return false;
@@ -654,65 +699,65 @@ float INScene::DistanceToDoor()
 void INScene::ChooseControler(BYTE keyboardState[256])
 {
 	if (m_controlerNumber > 0)
-		if (keyboardState[m_buttons[Up]] && !(m_lastPressedButton == Up))
-		{
-			m_highlitedIndex = (m_highlitedIndex - 1 + m_controlerNumber) % m_controlerNumber;
-			SetLastPressedButton(Up);
-			return;
-		}
-		else if (keyboardState[m_buttons[Down]] && !(m_lastPressedButton == Down))
-		{
-			m_highlitedIndex = (m_highlitedIndex + 1) % m_controlerNumber;
-			SetLastPressedButton(Down);
-			return;
-		}
-		else if (keyboardState[m_buttons[Return]] && !(m_lastPressedButton == Return))
-		{
-			m_chosenControler = m_highlitedIndex;
-			m_showControlers = false;
-			m_renderButtons = true;
-			m_maxButtonIndex = 4 * (m_highlitedIndex + 1) + 1;
-			m_highlitedIndex = 0;
-			SetLastPressedButton(Return);
-		}
-		else if (keyboardState[m_buttons[Menu]] && !(m_lastPressedButton == Menu))
-		{
-			m_showControlers = false;
-			SetLastPressedButton(Menu);
-			m_highlitedIndex = 0;
-		}
+	if (keyboardState[m_buttons[Up]] && !(m_lastPressedButton == Up))
+	{
+		m_highlitedIndex = (m_highlitedIndex - 1 + m_controlerNumber) % m_controlerNumber;
+		SetLastPressedButton(Up);
+		return;
+	}
+	else if (keyboardState[m_buttons[Down]] && !(m_lastPressedButton == Down))
+	{
+		m_highlitedIndex = (m_highlitedIndex + 1) % m_controlerNumber;
+		SetLastPressedButton(Down);
+		return;
+	}
+	else if (keyboardState[m_buttons[Return]] && !(m_lastPressedButton == Return))
+	{
+		m_chosenControler = m_highlitedIndex;
+		m_showControlers = false;
+		m_renderButtons = true;
+		m_maxButtonIndex = 4 * (m_highlitedIndex + 1) + 1;
+		m_highlitedIndex = 0;
+		SetLastPressedButton(Return);
+	}
+	else if (keyboardState[m_buttons[Menu]] && !(m_lastPressedButton == Menu))
+	{
+		m_showControlers = false;
+		SetLastPressedButton(Menu);
+		m_highlitedIndex = 0;
+	}
 }
 
 void INScene::ChooseControlerJoystick(DIJOYSTATE2 state)
 {
 	if (m_controlerNumber > 0)
-		if (CheckJoystickState(state, Up) && !(m_lastPressedButton == Up))
-		{
-			m_highlitedIndex = (m_highlitedIndex - 1 + m_controlerNumber) % m_controlerNumber;
-			SetLastPressedButton(Up);
-			return;
-		}
-		else if (CheckJoystickState(state, Down) && !(m_lastPressedButton == Down))
-		{
-			m_highlitedIndex = (m_highlitedIndex + 1) % m_controlerNumber;
-			SetLastPressedButton(Down);
-			return;
-		}
-		else if (CheckJoystickState(state, Return) && !(m_lastPressedButton == Return))
-		{
-			m_chosenControler = m_highlitedIndex;
-			m_showControlers = false;
-			m_renderButtons = true;
-			m_maxButtonIndex = 4 * (m_highlitedIndex + 1) + 1;
-			m_highlitedIndex = 0;
-			SetLastPressedButton(Return);
-		}
-		else if (CheckJoystickState(state, Menu) && !(m_lastPressedButton == Menu))
-		{
-			m_showControlers = false;
-			m_highlitedIndex = 0;
-			SetLastPressedButton(Menu);
-		}
+	if (CheckJoystickState(state, Up) && !(m_lastPressedButton == Up))
+	{
+		m_highlitedIndex = (m_highlitedIndex - 1 + m_controlerNumber) % m_controlerNumber;
+		SetLastPressedButton(Up);
+		return;
+	}
+	else if (CheckJoystickState(state, Down) && !(m_lastPressedButton == Down))
+	{
+		m_highlitedIndex = (m_highlitedIndex + 1) % m_controlerNumber;
+		SetLastPressedButton(Down);
+		return;
+	}
+	else if (CheckJoystickState(state, Return) && !(m_lastPressedButton == Return))
+	{
+		m_chosenControler = m_highlitedIndex;
+		m_showControlers = false;
+		m_renderButtons = true;
+		m_maxButtonIndex = 4 * (m_highlitedIndex + 1) + 1;
+		m_highlitedIndex = 0;
+		SetLastPressedButton(Return);
+	}
+	else if (CheckJoystickState(state, Menu) && !(m_lastPressedButton == Menu))
+	{
+		m_showControlers = false;
+		m_highlitedIndex = 0;
+		SetLastPressedButton(Menu);
+	}
 }
 
 void INScene::SetLastPressedButton(int button)
@@ -817,7 +862,7 @@ void INScene::RenderControlerMenu()
 {
 	if (!m_showControlers) return;
 
-	if(!joystick && FAILED(di->CreateDevice(GUID_Joystick, &joystick, nullptr))
+	if (!joystick && FAILED(di->CreateDevice(GUID_Joystick, &joystick, nullptr))
 		|| FAILED(joystick->SetDataFormat(&c_dfDIJoystick2))
 		// Determine how many axis the joystick has (so we don't error out setting
 		// properties for unavailable axis)

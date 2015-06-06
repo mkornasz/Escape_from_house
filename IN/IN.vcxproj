@@ -41,6 +41,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>C:\Program Files\Microsoft SDKs\Kinect\Developer Toolkit v1.8.0\inc;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -56,8 +57,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Program Files %28x86%29\Windows Kits\8.1\Lib\winv6.3\um\x86;C:\Program Files\Microsoft SDKs\Kinect\v1.8\lib\x86;$(DXSDK_DIR)Lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>d3d11.lib;d3dx11.lib;dxerr.lib;dinput8.lib;dxguid.lib;FW1FontWrapper.lib;Kinect10.lib;dmoguids.lib;Strmbase.lib;Avrt.lib;Msdmo.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Program Files\Microsoft SDKs\Kinect\v1.8\lib\x86;$(DXSDK_DIR)Lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>d3d11.lib;d3dx11.lib;dxerr.lib;dinput8.lib;dxguid.lib;FW1FontWrapper.lib;FaceTrackLib.lib;Kinect10.lib;dmoguids.lib;Strmbase.lib;Avrt.lib;Msdmo.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(ProjectDir)textured.hlsl" "$(TargetDir)"

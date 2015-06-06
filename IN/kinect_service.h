@@ -29,6 +29,7 @@ namespace mini
 		void Nui_GotSkeletonAlert();
 		void SetSysMemSkeletonBuffer(BYTE* buffer);
 		BYTE* GetSysMemSkeletonBuffer();
+		float* GetFaceBuffers();
 	private:
 		static DWORD WINAPI Nui_ProcessThread(LPVOID pParam);
 		HRESULT InitializeAudioStream();
@@ -36,6 +37,8 @@ namespace mini
 		HRESULT CreateSpeechRecognizer();
 		HRESULT StartSpeechRecognition();
 
+		void initFaceTracker();
+		void storeFace();
 		INuiSensor *m_nuiSensor;
 		HANDLE m_nuiProcess;
 		HANDLE m_nuiProcessStop;
@@ -49,5 +52,14 @@ namespace mini
 		ISpRecoContext *m_speechContext;
 		ISpRecoGrammar *m_speechGrammar;
 		ISpRecognizer *m_speechRecognizer;
+
+		float faceScale;
+		float faceR[3];
+		float faceT[3];
+		IFTFaceTracker *pFaceTracker;
+		IFTResult *pFTResult;
+		IFTImage *iftColorImage;
+		IFTImage *iftDepthImage;
+		bool lastTrackSucceeded;
 	};
 }

@@ -1,5 +1,5 @@
 #include "kinect_service.h"
-
+#include <FaceTrackLib.h>
 using namespace mini;
 
 KinectService::KinectService(void)
@@ -38,12 +38,14 @@ bool KinectService::Initialize()
 		return false;
 	}
 
-	//// Initialize Audio
-	//if (FAILED(InitializeAudioStream()))
-	//{
-	//	MessageBox(0, L"Failed to open audio stream.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
-	//	return false;
-	//}
+	initFaceTracker();
+
+	// Initialize Audio
+	if (FAILED(InitializeAudioStream()))
+	{
+		MessageBox(0, L"Failed to open audio stream.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
+		return false;
+	}
 
 	//if (FAILED(CreateSpeechRecognizer()))
 	//{
@@ -90,11 +92,16 @@ DWORD WINAPI KinectService::Nui_ProcessThread(LPVOID pParam)
 
 		// Process signal event
 		if (nEventIdx == 1)
+		{
 			pthis->Nui_GotSkeletonAlert();
+			pthis->storeFace();
+		}
+			
 	}
 
 	return (0);
 }
+
 void KinectService::Shutdown()
 {
 	// Stop the Nui processing thread
@@ -119,6 +126,8 @@ void KinectService::Shutdown()
 		CloseHandle(m_skeletonEvent);
 		m_skeletonEvent = NULL;
 	}
+
+	clearFaceTracker();
 }
 void KinectService::Nui_GotSkeletonAlert()
 {
@@ -285,4 +294,74 @@ HRESULT KinectService::CreateSpeechRecognizer()
 	}
 	pEngineToken = NULL;
 	return hr;
+}
+
+float* KinectService::GetFaceBuffers()
+{
+	return faceR;
+}
+
+void KinectService::initFaceTracker()
+{
+	HRESULT hr;
+	pFaceTracker = FTCreateFaceTracker(NULL);	// We don't use any options.
+	if (!pFaceTracker){
+		MessageBox(0, L"Could not create the face tracker.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
+		return;
+	}
+
+	FT_CAMERA_CONFIG videoConfig;
+	videoConfig.Width = 640;
+	videoConfig.Height = 480;
+	videoConfig.FocalLength = NUI_CAMERA_COLOR_NOMINAL_FOCAL_LENGTH_IN_PIXELS;			// 640x480
+
+	FT_CAMERA_CONFIG depthConfig;
+	depthConfig.Width = 320;
+	depthConfig.Height = 240;
+	depthConfig.FocalLength = NUI_CAMERA_DEPTH_NOMINAL_FOCAL_LENGTH_IN_PIXELS;			// 320x240
+
+	hr = pFaceTracker->Initialize(&videoConfig, &depthConfig, NULL, NULL);
+	if (!pFaceTracker){
+		MessageBox(0, L"Could not create the face tracker.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
+		return;
+	}
+
+	hr = pFaceTracker->CreateFTResult(&pFTResult);
+	if (FAILED(hr) || !pFTResult)
+	{
+		MessageBox(0, L"Could not create the face tracker.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
+		return;
+	}
+
+	iftColorImage = FTCreateImage();
+	if (!iftColorImage || FAILED(hr = iftColorImage->Allocate(videoConfig.Width, videoConfig.Height, FTIMAGEFORMAT_UINT8_B8G8R8X8)))
+	{
+		MessageBox(0, L"Could not create the color image.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
+		return;
+	}
+	iftDepthImage = FTCreateImage();
+	if (!iftDepthImage || FAILED(hr = iftDepthImage->Allocate(320, 240, FTIMAGEFORMAT_UINT16_D13P3)))
+	{
+		MessageBox(0, L"Could not create the depth image.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
+		return;
+	}
+
+	lastTrackSucceeded = false;
+}
+
+void KinectService::storeFace()
+{
+	HRESULT hrFT = E_FAIL;
+	FT_SENSOR_DATA sensorData(iftColorImage, iftDepthImage);
+
+	if (lastTrackSucceeded)
+		hrFT = pFaceTracker->ContinueTracking(&sensorData, NULL, pFTResult);
+	else
+		hrFT = pFaceTracker->StartTracking(&sensorData, NULL, NULL, pFTResult);
+
+	lastTrackSucceeded = SUCCEEDED(hrFT) && SUCCEEDED(pFTResult->GetStatus());
+	if (lastTrackSucceeded)
+		pFTResult->Get3DPose(&faceScale, faceR, faceT);
+	else
+		pFTResult->Reset();
 }

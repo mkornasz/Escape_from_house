@@ -54,6 +54,8 @@ namespace mini
 
 		//Recognize hands positions
 		int DetectHands(NUI_SKELETON_DATA& data);
+		//Recognize head rotation
+		int DetectHeadAngles(float* data);
 		// Handle kinect gestures changes
 		void HandleKinectGestures(float dt);
 		// Handle mouse changes using Windows API
