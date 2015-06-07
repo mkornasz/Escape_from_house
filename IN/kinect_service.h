@@ -15,6 +15,8 @@
 #include <dmo.h>
 #include <mfobjects.h>
 
+#include <FaceTrackLib.h>
+
 namespace mini
 {
 	class KinectService
@@ -42,10 +44,15 @@ namespace mini
 		INuiSensor *m_nuiSensor;
 		HANDLE m_nuiProcess;
 		HANDLE m_nuiProcessStop;
-			   
+
 		HANDLE m_skeletonEvent;
 		BYTE* m_skeletonBuffer;
-			   
+
+		HANDLE m_depthFrameEvent;
+		HANDLE m_videoFrameEvent;
+		HANDLE m_depthStreamHandle;
+		HANDLE m_videoStreamHandle;
+
 		KinectAudioStream *m_kinectAudioStream;
 		HANDLE m_speechEvent;
 		ISpStream *m_speechStream;

@@ -7,6 +7,9 @@ KinectService::KinectService(void)
 	m_skeletonEvent = NULL;
 	m_speechEvent = NULL;
 
+	m_depthStreamHandle = NULL;
+	m_videoStreamHandle = NULL;
+
 	m_nuiProcess = NULL;
 	m_nuiProcessStop = NULL;
 
@@ -16,6 +19,7 @@ KinectService::~KinectService(void)
 { }
 bool KinectService::Initialize()
 {
+	HRESULT hr;
 	// Setup Kinectconst
 	if (FAILED(NuiCreateSensorByIndex(0, &m_nuiSensor)))
 	{
@@ -24,7 +28,7 @@ bool KinectService::Initialize()
 	}
 
 	// Initialize NUI
-	if (FAILED(NuiInitialize(NUI_INITIALIZE_FLAG_USES_SKELETON | NUI_INITIALIZE_FLAG_USES_AUDIO)))
+	if (FAILED(NuiInitialize(NUI_INITIALIZE_FLAG_USES_SKELETON | NUI_INITIALIZE_FLAG_USES_AUDIO | NUI_INITIALIZE_FLAG_USES_COLOR | NUI_INITIALIZE_FLAG_USES_DEPTH)))
 	{
 		MessageBox(0, L"Failed to initialize NUI library.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		return false;
@@ -32,11 +36,29 @@ bool KinectService::Initialize()
 
 	// Initialize Skeleton events
 	m_skeletonEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-	if (FAILED(NuiSkeletonTrackingEnable(m_skeletonEvent, 0)))
+	if (FAILED(NuiSkeletonTrackingEnable(m_skeletonEvent, NUI_SKELETON_TRACKING_FLAG_ENABLE_IN_NEAR_RANGE)))
 	{
 		MessageBox(0, L"Failed to open skeletal stream.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		return false;
 	}
+
+	m_videoFrameEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+	if (FAILED(NuiImageStreamOpen(NUI_IMAGE_TYPE_COLOR, NUI_IMAGE_RESOLUTION_640x480, 0, 2, m_videoFrameEvent, &m_videoStreamHandle)))
+	{
+		MessageBox(0, L"Failed to open image stream.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
+		return false;
+	}
+
+	m_depthFrameEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+	if (FAILED(NuiImageStreamOpen(NUI_IMAGE_TYPE_DEPTH, NUI_IMAGE_RESOLUTION_320x240, 0, 2, m_depthFrameEvent, &m_depthStreamHandle)))
+	{
+		MessageBox(0, L"Failed to open image stream.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
+		return false;
+	}
+
+	// Start the Nui processing thread
+	m_nuiProcessStop = CreateEvent(NULL, FALSE, FALSE, NULL);
+	m_nuiProcess = CreateThread(NULL, 0, Nui_ProcessThread, this, 0, NULL);
 
 	initFaceTracker();
 
@@ -47,38 +69,36 @@ bool KinectService::Initialize()
 		return false;
 	}
 
-	//if (FAILED(CreateSpeechRecognizer()))
-	//{
-	//	MessageBox(0, L"Failed to create speech recogniser.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
-	//	return false;
-	//}
+	if (FAILED(CreateSpeechRecognizer()))
+	{
+		MessageBox(0, L"Failed to create speech recogniser.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
+		return false;
+	}
 
-	//if (FAILED(LoadSpeechGrammar()))
-	//{
-	//	MessageBox(0, L"Failed to load speech grammar.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
-	//	return false;
-	//}
+	if (FAILED(LoadSpeechGrammar()))
+	{
+		MessageBox(0, L"Failed to load speech grammar.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
+		return false;
+	}
 
-	//if (FAILED(StartSpeechRecognition()))
-	//{
-	//	MessageBox(0, L"Failed to start speech recognition.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
-	//	return false;
-	//}
-
-	// Start the Nui processing thread
-	m_nuiProcessStop = CreateEvent(NULL, FALSE, FALSE, NULL);
-	m_nuiProcess = CreateThread(NULL, 0, Nui_ProcessThread, this, 0, NULL);
+	if (FAILED(StartSpeechRecognition()))
+	{
+		MessageBox(0, L"Failed to start speech recognition.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
+		return false;
+	}
 	return true;
 }
 DWORD WINAPI KinectService::Nui_ProcessThread(LPVOID pParam)
 {
 	KinectService *pthis = (KinectService*)pParam;
-	HANDLE hEvents[2];
+	HANDLE hEvents[4];
 	int nEventIdx;
 
 	// Configure events to be listened on
 	hEvents[0] = pthis->m_nuiProcessStop;
-	hEvents[1] = pthis->m_skeletonEvent;
+	hEvents[1] = pthis->m_depthFrameEvent;
+	hEvents[2] = pthis->m_videoFrameEvent;
+	hEvents[3] = pthis->m_skeletonEvent;
 
 	// Main thread loop
 	while (1)
@@ -91,12 +111,12 @@ DWORD WINAPI KinectService::Nui_ProcessThread(LPVOID pParam)
 			break;
 
 		// Process signal event
-		if (nEventIdx == 1)
+		if (nEventIdx == 3)
 		{
 			pthis->Nui_GotSkeletonAlert();
 			pthis->storeFace();
 		}
-			
+
 	}
 
 	return (0);
@@ -126,8 +146,6 @@ void KinectService::Shutdown()
 		CloseHandle(m_skeletonEvent);
 		m_skeletonEvent = NULL;
 	}
-
-	clearFaceTracker();
 }
 void KinectService::Nui_GotSkeletonAlert()
 {
@@ -305,7 +323,8 @@ void KinectService::initFaceTracker()
 {
 	HRESULT hr;
 	pFaceTracker = FTCreateFaceTracker(NULL);	// We don't use any options.
-	if (!pFaceTracker){
+	if (!pFaceTracker)
+	{
 		MessageBox(0, L"Could not create the face tracker.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		return;
 	}
@@ -321,7 +340,8 @@ void KinectService::initFaceTracker()
 	depthConfig.FocalLength = NUI_CAMERA_DEPTH_NOMINAL_FOCAL_LENGTH_IN_PIXELS;			// 320x240
 
 	hr = pFaceTracker->Initialize(&videoConfig, &depthConfig, NULL, NULL);
-	if (!pFaceTracker){
+	if (!pFaceTracker)
+	{
 		MessageBox(0, L"Could not create the face tracker.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		return;
 	}
@@ -329,6 +349,10 @@ void KinectService::initFaceTracker()
 	hr = pFaceTracker->CreateFTResult(&pFTResult);
 	if (FAILED(hr) || !pFTResult)
 	{
+		if (hr == FT_ERROR_UNINITIALIZED)
+			printf("S");
+		else if (hr == E_POINTER)
+			printf("S");
 		MessageBox(0, L"Could not create the face tracker.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		return;
 	}
