@@ -14,6 +14,9 @@ KinectService::KinectService(void)
 	m_nuiProcessStop = NULL;
 
 	m_skeletonBuffer = NULL;
+
+	pFTResult = NULL;
+	pFaceTracker = NULL;
 }
 KinectService::~KinectService(void)
 { }
@@ -59,7 +62,7 @@ bool KinectService::Initialize()
 	// Start the Nui processing thread
 	m_nuiProcessStop = CreateEvent(NULL, FALSE, FALSE, NULL);
 	m_nuiProcess = CreateThread(NULL, 0, Nui_ProcessThread, this, 0, NULL);
-
+	
 	initFaceTracker();
 
 	// Initialize Audio
@@ -322,7 +325,7 @@ float* KinectService::GetFaceBuffers()
 void KinectService::initFaceTracker()
 {
 	HRESULT hr;
-	pFaceTracker = FTCreateFaceTracker(NULL);	// We don't use any options.
+	pFaceTracker = FTCreateFaceTracker();	// We don't use any options.
 	if (!pFaceTracker)
 	{
 		MessageBox(0, L"Could not create the face tracker.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
@@ -337,8 +340,8 @@ void KinectService::initFaceTracker()
 	FT_CAMERA_CONFIG depthConfig;
 	depthConfig.Width = 320;
 	depthConfig.Height = 240;
-	depthConfig.FocalLength = NUI_CAMERA_DEPTH_NOMINAL_FOCAL_LENGTH_IN_PIXELS;			// 320x240
-
+	depthConfig.FocalLength = NUI_CAMERA_DEPTH_NOMINAL_FOCAL_LENGTH_IN_PIXELS;
+	
 	hr = pFaceTracker->Initialize(&videoConfig, &depthConfig, NULL, NULL);
 	if (!pFaceTracker)
 	{
@@ -357,14 +360,15 @@ void KinectService::initFaceTracker()
 		return;
 	}
 
-	iftColorImage = FTCreateImage();
-	if (!iftColorImage || FAILED(hr = iftColorImage->Allocate(videoConfig.Width, videoConfig.Height, FTIMAGEFORMAT_UINT8_B8G8R8X8)))
+	m_imageBuffer = FTCreateImage();
+	if (!m_imageBuffer || FAILED(hr = m_imageBuffer->Allocate(videoConfig.Width, videoConfig.Height, FTIMAGEFORMAT_UINT8_B8G8R8X8)))
 	{
 		MessageBox(0, L"Could not create the color image.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		return;
 	}
-	iftDepthImage = FTCreateImage();
-	if (!iftDepthImage || FAILED(hr = iftDepthImage->Allocate(320, 240, FTIMAGEFORMAT_UINT16_D13P3)))
+
+	m_depthBuffer = FTCreateImage();
+	if (!m_depthBuffer || FAILED(hr = m_depthBuffer->Allocate(320, 240, FTIMAGEFORMAT_UINT16_D13P3)))
 	{
 		MessageBox(0, L"Could not create the depth image.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		return;
@@ -376,7 +380,7 @@ void KinectService::initFaceTracker()
 void KinectService::storeFace()
 {
 	HRESULT hrFT = E_FAIL;
-	FT_SENSOR_DATA sensorData(iftColorImage, iftDepthImage);
+	FT_SENSOR_DATA sensorData(m_imageBuffer, m_depthBuffer);
 
 	if (lastTrackSucceeded)
 		hrFT = pFaceTracker->ContinueTracking(&sensorData, NULL, pFTResult);

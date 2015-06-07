@@ -65,8 +65,8 @@ namespace mini
 		float faceT[3];
 		IFTFaceTracker *pFaceTracker;
 		IFTResult *pFTResult;
-		IFTImage *iftColorImage;
-		IFTImage *iftDepthImage;
+		IFTImage *m_imageBuffer;
+		IFTImage *m_depthBuffer;
 		bool lastTrackSucceeded;
 	};
 }
