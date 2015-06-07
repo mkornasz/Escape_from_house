@@ -106,20 +106,30 @@ DWORD WINAPI KinectService::Nui_ProcessThread(LPVOID pParam)
 	// Main thread loop
 	while (1)
 	{
-		// Wait for an event to be signalled
-		nEventIdx = WaitForMultipleObjects(sizeof(hEvents) / sizeof(hEvents[0]), hEvents, FALSE, 100);
+		//// Wait for an event to be signalled
+		WaitForMultipleObjects(sizeof(hEvents) / sizeof(hEvents[0]), hEvents, FALSE, 100);
 
-		// If the stop event, stop looping and exit
-		if (nEventIdx == 0)
-			break;
-
-		// Process signal event
-		if (nEventIdx == 3)
+		// If the stop event is set, stop looping and exit
+		if (WAIT_OBJECT_0 == WaitForSingleObject(pthis->m_nuiProcessStop, 0))
 		{
-			pthis->Nui_GotSkeletonAlert();
-			pthis->storeFace();
+			break;
 		}
 
+		// Process signal events
+		if (WAIT_OBJECT_0 == WaitForSingleObject(pthis->m_depthFrameEvent, 0))
+		{
+			//pthis->GotDepthAlert();
+			//pthis->m_FramesTotal++;
+		}
+		if (WAIT_OBJECT_0 == WaitForSingleObject(pthis->m_videoFrameEvent, 0))
+		{
+			//pthis->GotVideoAlert();
+		}
+		if (WAIT_OBJECT_0 == WaitForSingleObject(pthis->m_skeletonEvent, 0))
+		{
+				pthis->Nui_GotSkeletonAlert();
+				pthis->storeFace();
+		}
 	}
 
 	return (0);
