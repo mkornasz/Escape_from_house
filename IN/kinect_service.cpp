@@ -14,6 +14,7 @@ KinectService::KinectService(void)
 	m_nuiProcessStop = NULL;
 
 	m_skeletonBuffer = NULL;
+	lastTrackSucceeded = false;
 
 	pFTResult = NULL;
 	pFaceTracker = NULL;
@@ -59,11 +60,12 @@ bool KinectService::Initialize()
 		return false;
 	}
 
+	initFaceTracker();
+
 	// Start the Nui processing thread
 	m_nuiProcessStop = CreateEvent(NULL, FALSE, FALSE, NULL);
 	m_nuiProcess = CreateThread(NULL, 0, Nui_ProcessThread, this, 0, NULL);
 	
-	initFaceTracker();
 
 	// Initialize Audio
 	if (FAILED(InitializeAudioStream()))
@@ -72,7 +74,7 @@ bool KinectService::Initialize()
 		return false;
 	}
 
-	if (FAILED(CreateSpeechRecognizer()))
+	/*if (FAILED(CreateSpeechRecognizer()))
 	{
 		MessageBox(0, L"Failed to create speech recogniser.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		return false;
@@ -88,7 +90,7 @@ bool KinectService::Initialize()
 	{
 		MessageBox(0, L"Failed to start speech recognition.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		return false;
-	}
+	}*/
 	return true;
 }
 DWORD WINAPI KinectService::Nui_ProcessThread(LPVOID pParam)
@@ -118,12 +120,12 @@ DWORD WINAPI KinectService::Nui_ProcessThread(LPVOID pParam)
 		// Process signal events
 		if (WAIT_OBJECT_0 == WaitForSingleObject(pthis->m_depthFrameEvent, 0))
 		{
-			//pthis->GotDepthAlert();
-			//pthis->m_FramesTotal++;
+			pthis->Nui_GotDepthAlert();
+		//	pthis->m_FramesTotal++;
 		}
 		if (WAIT_OBJECT_0 == WaitForSingleObject(pthis->m_videoFrameEvent, 0))
 		{
-			//pthis->GotVideoAlert();
+			pthis->Nui_GotVideoAlert();
 		}
 		if (WAIT_OBJECT_0 == WaitForSingleObject(pthis->m_skeletonEvent, 0))
 		{
@@ -160,6 +162,47 @@ void KinectService::Shutdown()
 		m_skeletonEvent = NULL;
 	}
 }
+
+void KinectService::Nui_GotVideoAlert()
+{
+	const NUI_IMAGE_FRAME* pImageFrame = NULL;
+
+	HRESULT hr = NuiImageStreamGetNextFrame(m_videoStreamHandle, 0, &pImageFrame);
+	if (FAILED(hr))
+		return;
+
+	INuiFrameTexture* pTexture = pImageFrame->pFrameTexture;
+	NUI_LOCKED_RECT LockedRect;
+	pTexture->LockRect(0, &LockedRect, NULL, 0);
+	if (LockedRect.Pitch)
+		memcpy(m_VideoBuffer->GetBuffer(), PBYTE(LockedRect.pBits), min(m_VideoBuffer->GetBufferSize(), UINT(pTexture->BufferLen())));
+	else
+		MessageBox(0, L"Buffer length of received texture is bogus.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
+
+	hr = NuiImageStreamReleaseFrame(m_videoStreamHandle, pImageFrame);
+}
+
+
+void KinectService::Nui_GotDepthAlert()
+{
+	const NUI_IMAGE_FRAME* pImageFrame = NULL;
+
+	HRESULT hr = NuiImageStreamGetNextFrame(m_depthStreamHandle, 0, &pImageFrame);
+
+	if (FAILED(hr))
+		return;
+
+	INuiFrameTexture* pTexture = pImageFrame->pFrameTexture;
+	NUI_LOCKED_RECT LockedRect;
+	pTexture->LockRect(0, &LockedRect, NULL, 0);
+	if (LockedRect.Pitch)
+		memcpy(m_DepthBuffer->GetBuffer(), PBYTE(LockedRect.pBits), min(m_DepthBuffer->GetBufferSize(), UINT(pTexture->BufferLen())));
+	else
+		MessageBox(0, L"Buffer length of received depth texture is bogus.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
+
+	hr = NuiImageStreamReleaseFrame(m_depthStreamHandle, pImageFrame);
+}
+
 void KinectService::Nui_GotSkeletonAlert()
 {
 	NUI_SKELETON_FRAME SkeletonFrame;
@@ -332,6 +375,11 @@ float* KinectService::GetFaceBuffers()
 	return faceR;
 }
 
+bool KinectService::GetFaceTrackingInfo()
+{
+	return lastTrackSucceeded;
+}
+
 void KinectService::initFaceTracker()
 {
 	HRESULT hr;
@@ -370,19 +418,39 @@ void KinectService::initFaceTracker()
 		return;
 	}
 
-	m_imageBuffer = FTCreateImage();
-	if (!m_imageBuffer || FAILED(hr = m_imageBuffer->Allocate(videoConfig.Width, videoConfig.Height, FTIMAGEFORMAT_UINT8_B8G8R8X8)))
+	m_VideoBuffer = FTCreateImage();
+	if (!m_VideoBuffer || FAILED(hr = m_VideoBuffer->Allocate(videoConfig.Width, videoConfig.Height, FTIMAGEFORMAT_UINT8_B8G8R8X8)))
 	{
 		MessageBox(0, L"Could not create the color image.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		return;
 	}
 
-	m_depthBuffer = FTCreateImage();
-	if (!m_depthBuffer || FAILED(hr = m_depthBuffer->Allocate(320, 240, FTIMAGEFORMAT_UINT16_D13P3)))
+	m_DepthBuffer = FTCreateImage();
+	if (!m_DepthBuffer || FAILED(hr = m_DepthBuffer->Allocate(320, 240, FTIMAGEFORMAT_UINT16_D13P3)))
 	{
 		MessageBox(0, L"Could not create the depth image.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		return;
 	}
+
+
+	m_imageBuffer = FTCreateImage();
+	m_depthBuffer = FTCreateImage();
+
+	if (!m_imageBuffer || !m_depthBuffer)
+	{
+		MessageBox(0, L"Could not create the images.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
+		return;
+	}
+
+	m_imageBuffer->Allocate(640, 480, FTIMAGEFORMAT_UINT8_B8G8R8X8);
+	m_depthBuffer->Allocate(320, 240, FTIMAGEFORMAT_UINT16_D13P3);
+
+	FT_SENSOR_DATA sensorData;
+	sensorData.pVideoFrame = m_imageBuffer;
+	sensorData.pDepthFrame = m_depthBuffer;
+	sensorData.ZoomFactor = 1.0f;
+	POINT p = { 0, 0 };
+	sensorData.ViewOffset = p;
 
 	lastTrackSucceeded = false;
 }
@@ -390,6 +458,14 @@ void KinectService::initFaceTracker()
 void KinectService::storeFace()
 {
 	HRESULT hrFT = E_FAIL;
+
+	HRESULT hrCopy = GetVideoBuffer()->CopyTo(m_imageBuffer, NULL, 0, 0);
+	if (SUCCEEDED(hrCopy) && GetDepthBuffer())
+		hrCopy = GetDepthBuffer()->CopyTo(m_depthBuffer, NULL, 0, 0);
+
+	if (FAILED(hrCopy))
+		return;
+
 	FT_SENSOR_DATA sensorData(m_imageBuffer, m_depthBuffer);
 
 	if (lastTrackSucceeded)
