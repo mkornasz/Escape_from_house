@@ -38,6 +38,7 @@ namespace mini
 		HRESULT LoadSpeechGrammar();
 		HRESULT CreateSpeechRecognizer();
 		HRESULT StartSpeechRecognition();
+		void ProcessSpeech();
 
 		void initFaceTracker();
 		void storeFace();
@@ -45,11 +46,12 @@ namespace mini
 		HANDLE m_nuiProcess;
 		HANDLE m_nuiProcessStop;
 
-		HANDLE m_skeletonEvent;
 		BYTE* m_skeletonBuffer;
 
+		HANDLE m_skeletonEvent;
 		HANDLE m_depthFrameEvent;
 		HANDLE m_videoFrameEvent;
+
 		HANDLE m_depthStreamHandle;
 		HANDLE m_videoStreamHandle;
 

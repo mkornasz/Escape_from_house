@@ -31,7 +31,7 @@ bool KinectService::Initialize()
 	}
 
 	// Initialize NUI
-	if (FAILED(NuiInitialize(NUI_INITIALIZE_FLAG_USES_SKELETON | NUI_INITIALIZE_FLAG_USES_AUDIO | NUI_INITIALIZE_FLAG_USES_COLOR | NUI_INITIALIZE_FLAG_USES_DEPTH)))
+	if (hr=FAILED(NuiInitialize(NUI_INITIALIZE_FLAG_USES_SKELETON | NUI_INITIALIZE_FLAG_USES_AUDIO | NUI_INITIALIZE_FLAG_USES_COLOR | NUI_INITIALIZE_FLAG_USES_DEPTH)))
 	{
 		MessageBox(0, L"Failed to initialize NUI library.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		return false;
@@ -59,11 +59,11 @@ bool KinectService::Initialize()
 		return false;
 	}
 
+	//initFaceTracker();
+
 	// Start the Nui processing thread
 	m_nuiProcessStop = CreateEvent(NULL, FALSE, FALSE, NULL);
 	m_nuiProcess = CreateThread(NULL, 0, Nui_ProcessThread, this, 0, NULL);
-	
-	initFaceTracker();
 
 	// Initialize Audio
 	if (FAILED(InitializeAudioStream()))
@@ -94,7 +94,7 @@ bool KinectService::Initialize()
 DWORD WINAPI KinectService::Nui_ProcessThread(LPVOID pParam)
 {
 	KinectService *pthis = (KinectService*)pParam;
-	HANDLE hEvents[4];
+	HANDLE hEvents[5];
 	int nEventIdx;
 
 	// Configure events to be listened on
@@ -102,6 +102,7 @@ DWORD WINAPI KinectService::Nui_ProcessThread(LPVOID pParam)
 	hEvents[1] = pthis->m_depthFrameEvent;
 	hEvents[2] = pthis->m_videoFrameEvent;
 	hEvents[3] = pthis->m_skeletonEvent;
+	hEvents[4] = pthis->m_speechEvent;
 
 	// Main thread loop
 	while (1)
@@ -128,12 +129,90 @@ DWORD WINAPI KinectService::Nui_ProcessThread(LPVOID pParam)
 		if (WAIT_OBJECT_0 == WaitForSingleObject(pthis->m_skeletonEvent, 0))
 		{
 				pthis->Nui_GotSkeletonAlert();
-				pthis->storeFace();
+				//pthis->storeFace();
+		}
+		if (WAIT_OBJECT_0 == WaitForSingleObject(pthis->m_speechEvent, 0))
+		{
+			pthis->ProcessSpeech();
 		}
 	}
 
 	return (0);
 }
+
+void KinectService::ProcessSpeech()
+{
+	const float ConfidenceThreshold = 0.3f;
+
+	SPEVENT curEvent;
+	ULONG fetched = 0;
+	HRESULT hr = S_OK;
+
+	m_speechContext->GetEvents(1, &curEvent, &fetched);
+
+	while (fetched > 0)
+	{
+		switch (curEvent.eEventId)
+		{
+		case SPEI_RECOGNITION:
+			if (SPET_LPARAM_IS_OBJECT == curEvent.elParamType)
+			{
+				// this is an ISpRecoResult
+				ISpRecoResult* result = reinterpret_cast<ISpRecoResult*>(curEvent.lParam);
+				SPPHRASE* pPhrase = NULL;
+
+				hr = result->GetPhrase(&pPhrase);
+				if (SUCCEEDED(hr))
+				{
+					if ((pPhrase->pProperties != NULL) && (pPhrase->pProperties->pFirstChild != NULL))
+					{
+						const SPPHRASEPROPERTY* pSemanticTag = pPhrase->pProperties->pFirstChild;
+						if (pSemanticTag->SREngineConfidence > ConfidenceThreshold)
+						{
+							TurtleAction action = MapSpeechTagToAction(pSemanticTag->pszValue);
+							m_pTurtleController->DoAction(action);
+						}
+					}
+					::CoTaskMemFree(pPhrase);
+				}
+			}
+			break;
+		}
+
+		m_speechContext->GetEvents(1, &curEvent, &fetched);
+	}
+
+	return;
+}
+
+/*TurtleAction KinectService::MapSpeechTagToAction(LPCWSTR pszSpeechTag)
+{
+	struct SpeechTagToAction
+	{
+		LPCWSTR pszSpeechTag;
+		TurtleAction action;
+	};
+	const SpeechTagToAction Map[] =
+	{
+		{ L"FORWARD", TurtleActionForward },
+		{ L"BACKWARD", TurtleActionBackward },
+		{ L"LEFT", TurtleActionTurnLeft },
+		{ L"RIGHT", TurtleActionTurnRight }
+	};
+
+	TurtleAction action = TurtleActionNone;
+
+	for (int i = 0; i < _countof(Map); ++i)
+	{
+		if (0 == wcscmp(Map[i].pszSpeechTag, pszSpeechTag))
+		{
+			action = Map[i].action;
+			break;
+		}
+	}
+
+	return action;
+}*/
 
 void KinectService::Shutdown()
 {
@@ -215,7 +294,7 @@ HRESULT KinectService::InitializeAudioStream()
 			PROPVARIANT pvSysMode;
 			PropVariantInit(&pvSysMode);
 			pvSysMode.vt = VT_I4;
-			pvSysMode.lVal = (LONG)(4); // Use OPTIBEAM_ARRAY_ONLY setting. Set OPTIBEAM_ARRAY_AND_AEC instead if you expect to have sound playing from speakers.
+			pvSysMode.lVal = (LONG)(2); // Use OPTIBEAM_ARRAY_ONLY setting. Set OPTIBEAM_ARRAY_AND_AEC instead if you expect to have sound playing from speakers.
 			pPropertyStore->SetValue(MFPKEY_WMAAECMA_SYSTEM_MODE, pvSysMode);
 			PropVariantClear(&pvSysMode);
 
@@ -244,6 +323,10 @@ HRESULT KinectService::InitializeAudioStream()
 				if (SUCCEEDED(hr))
 				{
 					hr = CoCreateInstance(CLSID_SpStream, NULL, CLSCTX_INPROC_SERVER, __uuidof(ISpStream), (void**)&m_speechStream);
+					if (SUCCEEDED(hr))
+					{
+						hr = m_speechStream->SetBaseStream(pStream, SPDFID_WaveFormatEx, &wfxOut);
+					}
 				}
 			}
 
@@ -274,7 +357,7 @@ HRESULT KinectService::StartSpeechRecognition()
 		m_speechContext->SetInterest(SPFEI(SPEI_RECOGNITION), SPFEI(SPEI_RECOGNITION));
 
 		// Ensure that engine is recognizing speech and not in paused state
-		m_speechContext->Pause(0);
+		//m_speechContext->Pause(0);
 		hr = m_speechContext->Resume(0);
 		if (SUCCEEDED(hr))
 		{
@@ -307,16 +390,7 @@ HRESULT KinectService::CreateSpeechRecognizer()
 	{
 		m_speechRecognizer->SetInput(m_speechStream, FALSE);
 		hr = SpFindBestToken(SPCAT_RECOGNIZERS, L"Language=409", NULL, &pEngineToken);
-
-		if (hr == S_OK)
-			printf("A");
-		if (hr == REGDB_E_CLASSNOTREG)
-			printf("B");
-		if (hr == CLASS_E_NOAGGREGATION)
-			printf("C");
-		if (hr == SPERR_NOT_FOUND)
-			printf("B");
-
+		
 		if (SUCCEEDED(hr))
 		{
 			m_speechRecognizer->SetRecognizer(pEngineToken);
