@@ -135,6 +135,7 @@ namespace mini
 		//Prevents from hitting the same key multiple times
 		float m_timeLastPressElapsed;
 		int m_kinectGesture;
+		int m_headGesture;
 		// DirectX input
 		IDirectInput8 * di;
 		// DirectX mouse device

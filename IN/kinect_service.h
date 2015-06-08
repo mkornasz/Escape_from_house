@@ -27,18 +27,27 @@ namespace mini
 
 		bool Initialize();
 		void Shutdown();
-
+		void Nui_GotDepthAlert();
+		void Nui_GotVideoAlert();
 		void Nui_GotSkeletonAlert();
 		void SetSysMemSkeletonBuffer(BYTE* buffer);
 		BYTE* GetSysMemSkeletonBuffer();
 		float* GetFaceBuffers();
+		bool GetSpeechInfo(){ return m_recognisedNewWord; }
+		int GetLastWord(){ return m_recognisedWord; }
+		void ResetWordData();
+		bool GetFaceTrackingInfo();
+		IFTImage* GetVideoBuffer(){ return(m_VideoBuffer); };
+		IFTImage* GetDepthBuffer(){ return(m_DepthBuffer); };
 	private:
+
 		static DWORD WINAPI Nui_ProcessThread(LPVOID pParam);
 		HRESULT InitializeAudioStream();
 		HRESULT LoadSpeechGrammar();
 		HRESULT CreateSpeechRecognizer();
 		HRESULT StartSpeechRecognition();
 		void ProcessSpeech();
+		void MapSpeechTagToAction(LPCWSTR pszSpeechTag);
 
 		void initFaceTracker();
 		void storeFace();
@@ -55,6 +64,8 @@ namespace mini
 		HANDLE m_depthStreamHandle;
 		HANDLE m_videoStreamHandle;
 
+		bool m_recognisedNewWord;
+		int m_recognisedWord;
 		KinectAudioStream *m_kinectAudioStream;
 		HANDLE m_speechEvent;
 		ISpStream *m_speechStream;
@@ -62,6 +73,7 @@ namespace mini
 		ISpRecoGrammar *m_speechGrammar;
 		ISpRecognizer *m_speechRecognizer;
 
+		bool lastTrackSucceeded;
 		float faceScale;
 		float faceR[3];
 		float faceT[3];
@@ -69,6 +81,7 @@ namespace mini
 		IFTResult *pFTResult;
 		IFTImage *m_imageBuffer;
 		IFTImage *m_depthBuffer;
-		bool lastTrackSucceeded;
+		IFTImage*   m_VideoBuffer;
+		IFTImage*   m_DepthBuffer;
 	};
 }

@@ -6,6 +6,8 @@ KinectService::KinectService(void)
 {
 	m_skeletonEvent = NULL;
 	m_speechEvent = NULL;
+	m_recognisedNewWord = false;
+	m_recognisedWord = -1;
 
 	m_depthStreamHandle = NULL;
 	m_videoStreamHandle = NULL;
@@ -14,6 +16,7 @@ KinectService::KinectService(void)
 	m_nuiProcessStop = NULL;
 
 	m_skeletonBuffer = NULL;
+	lastTrackSucceeded = false;
 
 	pFTResult = NULL;
 	pFaceTracker = NULL;
@@ -22,7 +25,6 @@ KinectService::~KinectService(void)
 { }
 bool KinectService::Initialize()
 {
-	HRESULT hr;
 	// Setup Kinectconst
 	if (FAILED(NuiCreateSensorByIndex(0, &m_nuiSensor)))
 	{
@@ -31,7 +33,7 @@ bool KinectService::Initialize()
 	}
 
 	// Initialize NUI
-	if (hr=FAILED(NuiInitialize(NUI_INITIALIZE_FLAG_USES_SKELETON | NUI_INITIALIZE_FLAG_USES_AUDIO | NUI_INITIALIZE_FLAG_USES_COLOR | NUI_INITIALIZE_FLAG_USES_DEPTH)))
+	if (FAILED(NuiInitialize(NUI_INITIALIZE_FLAG_USES_SKELETON | NUI_INITIALIZE_FLAG_USES_AUDIO | NUI_INITIALIZE_FLAG_USES_COLOR | NUI_INITIALIZE_FLAG_USES_DEPTH)))
 	{
 		MessageBox(0, L"Failed to initialize NUI library.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		return false;
@@ -64,7 +66,7 @@ bool KinectService::Initialize()
 	// Start the Nui processing thread
 	m_nuiProcessStop = CreateEvent(NULL, FALSE, FALSE, NULL);
 	m_nuiProcess = CreateThread(NULL, 0, Nui_ProcessThread, this, 0, NULL);
-
+	
 	// Initialize Audio
 	if (FAILED(InitializeAudioStream()))
 	{
@@ -119,17 +121,17 @@ DWORD WINAPI KinectService::Nui_ProcessThread(LPVOID pParam)
 		// Process signal events
 		if (WAIT_OBJECT_0 == WaitForSingleObject(pthis->m_depthFrameEvent, 0))
 		{
-			//pthis->GotDepthAlert();
-			//pthis->m_FramesTotal++;
+			//pthis->Nui_GotDepthAlert();
+			//	pthis->m_FramesTotal++;
 		}
 		if (WAIT_OBJECT_0 == WaitForSingleObject(pthis->m_videoFrameEvent, 0))
 		{
-			//pthis->GotVideoAlert();
+			//pthis->Nui_GotVideoAlert();
 		}
 		if (WAIT_OBJECT_0 == WaitForSingleObject(pthis->m_skeletonEvent, 0))
 		{
-				pthis->Nui_GotSkeletonAlert();
-				//pthis->storeFace();
+			pthis->Nui_GotSkeletonAlert();
+			//pthis->storeFace();
 		}
 		if (WAIT_OBJECT_0 == WaitForSingleObject(pthis->m_speechEvent, 0))
 		{
@@ -168,12 +170,9 @@ void KinectService::ProcessSpeech()
 					{
 						const SPPHRASEPROPERTY* pSemanticTag = pPhrase->pProperties->pFirstChild;
 						if (pSemanticTag->SREngineConfidence > ConfidenceThreshold)
-						{
-							TurtleAction action = MapSpeechTagToAction(pSemanticTag->pszValue);
-							m_pTurtleController->DoAction(action);
-						}
+							MapSpeechTagToAction(pSemanticTag->pszValue);
 					}
-					::CoTaskMemFree(pPhrase);
+					CoTaskMemFree(pPhrase);
 				}
 			}
 			break;
@@ -185,34 +184,32 @@ void KinectService::ProcessSpeech()
 	return;
 }
 
-/*TurtleAction KinectService::MapSpeechTagToAction(LPCWSTR pszSpeechTag)
+void KinectService::MapSpeechTagToAction(LPCWSTR pszSpeechTag)
 {
 	struct SpeechTagToAction
 	{
 		LPCWSTR pszSpeechTag;
-		TurtleAction action;
+		int action;
 	};
 	const SpeechTagToAction Map[] =
 	{
-		{ L"FORWARD", TurtleActionForward },
-		{ L"BACKWARD", TurtleActionBackward },
-		{ L"LEFT", TurtleActionTurnLeft },
-		{ L"RIGHT", TurtleActionTurnRight }
+		{ L"FORWARD", 1 },
+		{ L"BACKWARD", 2 },
+		{ L"LEFT", 3 },
+		{ L"RIGHT", 4 },
+		{ L"DOOR", 5 }
 	};
-
-	TurtleAction action = TurtleActionNone;
 
 	for (int i = 0; i < _countof(Map); ++i)
 	{
 		if (0 == wcscmp(Map[i].pszSpeechTag, pszSpeechTag))
 		{
-			action = Map[i].action;
-			break;
+			m_recognisedWord = Map[i].action;
+			m_recognisedNewWord = true;
+			return;
 		}
 	}
-
-	return action;
-}*/
+}
 
 void KinectService::Shutdown()
 {
@@ -239,6 +236,47 @@ void KinectService::Shutdown()
 		m_skeletonEvent = NULL;
 	}
 }
+
+void KinectService::Nui_GotVideoAlert()
+{
+	const NUI_IMAGE_FRAME* pImageFrame = NULL;
+
+	HRESULT hr = NuiImageStreamGetNextFrame(m_videoStreamHandle, 0, &pImageFrame);
+	if (FAILED(hr))
+		return;
+
+	INuiFrameTexture* pTexture = pImageFrame->pFrameTexture;
+	NUI_LOCKED_RECT LockedRect;
+	pTexture->LockRect(0, &LockedRect, NULL, 0);
+	if (LockedRect.Pitch)
+		memcpy(m_VideoBuffer->GetBuffer(), PBYTE(LockedRect.pBits), min(m_VideoBuffer->GetBufferSize(), UINT(pTexture->BufferLen())));
+	else
+		MessageBox(0, L"Buffer length of received texture is bogus.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
+
+	hr = NuiImageStreamReleaseFrame(m_videoStreamHandle, pImageFrame);
+}
+
+
+void KinectService::Nui_GotDepthAlert()
+{
+	const NUI_IMAGE_FRAME* pImageFrame = NULL;
+
+	HRESULT hr = NuiImageStreamGetNextFrame(m_depthStreamHandle, 0, &pImageFrame);
+
+	if (FAILED(hr))
+		return;
+
+	INuiFrameTexture* pTexture = pImageFrame->pFrameTexture;
+	NUI_LOCKED_RECT LockedRect;
+	pTexture->LockRect(0, &LockedRect, NULL, 0);
+	if (LockedRect.Pitch)
+		memcpy(m_DepthBuffer->GetBuffer(), PBYTE(LockedRect.pBits), min(m_DepthBuffer->GetBufferSize(), UINT(pTexture->BufferLen())));
+	else
+		MessageBox(0, L"Buffer length of received depth texture is bogus.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
+
+	hr = NuiImageStreamReleaseFrame(m_depthStreamHandle, pImageFrame);
+}
+
 void KinectService::Nui_GotSkeletonAlert()
 {
 	NUI_SKELETON_FRAME SkeletonFrame;
@@ -390,7 +428,7 @@ HRESULT KinectService::CreateSpeechRecognizer()
 	{
 		m_speechRecognizer->SetInput(m_speechStream, FALSE);
 		hr = SpFindBestToken(SPCAT_RECOGNIZERS, L"Language=409", NULL, &pEngineToken);
-		
+
 		if (SUCCEEDED(hr))
 		{
 			m_speechRecognizer->SetRecognizer(pEngineToken);
@@ -404,6 +442,11 @@ HRESULT KinectService::CreateSpeechRecognizer()
 float* KinectService::GetFaceBuffers()
 {
 	return faceR;
+}
+
+bool KinectService::GetFaceTrackingInfo()
+{
+	return lastTrackSucceeded;
 }
 
 void KinectService::initFaceTracker()
@@ -425,7 +468,7 @@ void KinectService::initFaceTracker()
 	depthConfig.Width = 320;
 	depthConfig.Height = 240;
 	depthConfig.FocalLength = NUI_CAMERA_DEPTH_NOMINAL_FOCAL_LENGTH_IN_PIXELS;
-	
+
 	hr = pFaceTracker->Initialize(&videoConfig, &depthConfig, NULL, NULL);
 	if (!pFaceTracker)
 	{
@@ -444,19 +487,39 @@ void KinectService::initFaceTracker()
 		return;
 	}
 
-	m_imageBuffer = FTCreateImage();
-	if (!m_imageBuffer || FAILED(hr = m_imageBuffer->Allocate(videoConfig.Width, videoConfig.Height, FTIMAGEFORMAT_UINT8_B8G8R8X8)))
+	m_VideoBuffer = FTCreateImage();
+	if (!m_VideoBuffer || FAILED(hr = m_VideoBuffer->Allocate(videoConfig.Width, videoConfig.Height, FTIMAGEFORMAT_UINT8_B8G8R8X8)))
 	{
 		MessageBox(0, L"Could not create the color image.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		return;
 	}
 
-	m_depthBuffer = FTCreateImage();
-	if (!m_depthBuffer || FAILED(hr = m_depthBuffer->Allocate(320, 240, FTIMAGEFORMAT_UINT16_D13P3)))
+	m_DepthBuffer = FTCreateImage();
+	if (!m_DepthBuffer || FAILED(hr = m_DepthBuffer->Allocate(320, 240, FTIMAGEFORMAT_UINT16_D13P3)))
 	{
 		MessageBox(0, L"Could not create the depth image.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		return;
 	}
+
+
+	m_imageBuffer = FTCreateImage();
+	m_depthBuffer = FTCreateImage();
+
+	if (!m_imageBuffer || !m_depthBuffer)
+	{
+		MessageBox(0, L"Could not create the images.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
+		return;
+	}
+
+	m_imageBuffer->Allocate(640, 480, FTIMAGEFORMAT_UINT8_B8G8R8X8);
+	m_depthBuffer->Allocate(320, 240, FTIMAGEFORMAT_UINT16_D13P3);
+
+	FT_SENSOR_DATA sensorData;
+	sensorData.pVideoFrame = m_imageBuffer;
+	sensorData.pDepthFrame = m_depthBuffer;
+	sensorData.ZoomFactor = 1.0f;
+	POINT p = { 0, 0 };
+	sensorData.ViewOffset = p;
 
 	lastTrackSucceeded = false;
 }
@@ -464,6 +527,14 @@ void KinectService::initFaceTracker()
 void KinectService::storeFace()
 {
 	HRESULT hrFT = E_FAIL;
+
+	HRESULT hrCopy = GetVideoBuffer()->CopyTo(m_imageBuffer, NULL, 0, 0);
+	if (SUCCEEDED(hrCopy) && GetDepthBuffer())
+		hrCopy = GetDepthBuffer()->CopyTo(m_depthBuffer, NULL, 0, 0);
+
+	if (FAILED(hrCopy))
+		return;
+
 	FT_SENSOR_DATA sensorData(m_imageBuffer, m_depthBuffer);
 
 	if (lastTrackSucceeded)
@@ -476,4 +547,10 @@ void KinectService::storeFace()
 		pFTResult->Get3DPose(&faceScale, faceR, faceT);
 	else
 		pFTResult->Reset();
+}
+
+void KinectService::ResetWordData()
+{
+	m_recognisedWord = -1;
+	m_recognisedNewWord = false;
 }

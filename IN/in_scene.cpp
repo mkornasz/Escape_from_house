@@ -10,7 +10,9 @@ using namespace mini;
 using namespace mini::utils;
 using namespace DirectX;
 
-
+float pitch ;   //down - up
+float roll ;
+float yaw;
 
 bool INScene::ProcessMessage(WindowMessage& msg)
 {
@@ -67,6 +69,7 @@ void INScene::InitializeEnvironment()
 	m_chosenControler = Kinect;
 	m_highlitedIndex = 0;
 	m_kinectGesture = -2;
+	m_headGesture = -2;
 	m_buttons[Up] = DIK_UP;
 	m_buttons[Down] = DIK_DOWN;
 	m_buttons[Left] = DIK_LEFT;
@@ -156,17 +159,17 @@ int INScene::DetectHands(NUI_SKELETON_DATA& data)
 int INScene::DetectHeadAngles(float* data)
 {
 	int result = -1;
-	float pitch = data[0];   //down - up
-	float roll = data[1];
-	float yaw = data[2];  //left-right
+	 pitch = data[0];   //down - up
+	 roll = data[1]; //left-right
+	 yaw = data[2]; 
 
-	if (pitch < -18)
+	if (pitch > 16)
 		return 0;
-	else if (pitch>18)
+	else if (pitch<-16)
 		return 1;
-	else if (yaw > 18)
+	else if (roll < -18)
 		return 2;
-	else if (yaw < -18)
+	else if (roll > 18)
 		return 3;
 }
 
@@ -174,37 +177,66 @@ void INScene::HandleKinectGestures(float dt)
 {
 	int gestureId;
 	int headAngleId;
+	int lastWordId;
 
-	headAngleId = DetectHeadAngles(m_kinectService->GetFaceBuffers());
-	switch (headAngleId)
+	if (m_kinectService->GetFaceTrackingInfo())
 	{
-	case 0:
-		m_camera.Rotate(-0.002 * XM_PIDIV4, 0);
-		//m_kinectGesture = 0;
-		break;
-	case 1:
-		m_camera.Rotate(0.002 * XM_PIDIV4, 0);
-		//m_kinectGesture = 1;
-		break;
-	case 2:
-		m_camera.Rotate(0, 0.002 * XM_PIDIV4);
-		//m_kinectGesture = 2;
-		break;
-	case 3:
-		m_camera.Rotate(0, -0.002 * XM_PIDIV4);
-		//	m_kinectGesture = 3;
-		break;
-	case -1:
-		//	m_kinectGesture = -1;
-		break;
-	default:
-		//	m_kinectGesture = -1;
-		break;
+		headAngleId = DetectHeadAngles(m_kinectService->GetFaceBuffers());
+		switch (headAngleId)
+		{
+		case 0:
+			m_camera.Rotate(-0.002 * XM_PIDIV4, 0);
+			m_headGesture = 0;
+			break;
+		case 1:
+			m_camera.Rotate(0.002 * XM_PIDIV4, 0);
+			m_headGesture = 1;
+			break;
+		case 2:
+			m_camera.Rotate(0, 0.002 * XM_PIDIV4);
+			m_headGesture = 2;
+			break;
+		case 3:
+			m_camera.Rotate(0, -0.002 * XM_PIDIV4);
+			m_headGesture = 3;
+			break;
+		case -1:
+			m_headGesture = -1;
+			break;
+		default:
+			m_headGesture = -1;
+			break;
+		}
 	}
-
+	if (m_kinectService->GetSpeechInfo())
+	{
+		lastWordId = m_kinectService->GetLastWord();
+		switch (lastWordId)
+		{
+		case 0:
+			MoveCharacter(0, 5 * dt);
+			m_kinectService->ResetWordData();
+			break;
+		case 1:
+			MoveCharacter(0, -5 * dt);
+			m_kinectService->ResetWordData();
+			break;
+		case 2:
+			MoveCharacter(5 * dt, 0);
+			m_kinectService->ResetWordData();
+			break;
+		case 3:
+			MoveCharacter(-5 * dt, 0);
+			m_kinectService->ResetWordData();
+			break;
+		case 4:
+			ToggleDoor();
+			m_kinectService->ResetWordData();
+			break;
+		}
+	}
 	if (m_kinectService->GetSysMemSkeletonBuffer() == NULL)
 	{
-		// Our pointer is now filled with data - we need to do something with it.
 		for (int i = 0; i < NUI_SKELETON_COUNT; i++)
 		if (((NUI_SKELETON_FRAME*)m_skeleton)->SkeletonData[i].eTrackingState == NUI_SKELETON_TRACKED)
 			gestureId = DetectHands(((NUI_SKELETON_FRAME*)m_skeleton)->SkeletonData[i]);
@@ -496,6 +528,24 @@ void INScene::RenderText()
 		break;
 	case -1:
 		str << L"\nKINECT: Both hands horizontal";
+		break;
+	default:
+		break;
+	}
+	
+	switch (m_headGesture)
+	{
+	case 0:
+		str << L"\nKINECT: Head up";
+		break;
+	case 1:
+		str << L"\nKINECT: Head down";
+		break;
+	case 2:
+		str << L"\nKINECT: Head right";
+		break;
+	case 3:
+		str << L"\nKINECT: Head left";
 		break;
 	default:
 		break;

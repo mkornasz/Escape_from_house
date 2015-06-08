@@ -29,6 +29,12 @@
           <item> turn right </item>
         </one-of>
       </item>
+      <item>
+        <tag>DOOR</tag>
+        <one-of>
+          <item> door </item>
+        </one-of>
+      </item>
     </one-of>
   </rule>
 </grammar>
