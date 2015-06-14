@@ -34,8 +34,7 @@ namespace mini
 		BYTE* GetSysMemSkeletonBuffer();
 		float* GetFaceBuffers();
 		bool GetSpeechInfo(){ return m_recognisedNewWord; }
-		int GetLastWord(){ return m_recognisedWord; }
-		void ResetWordData();
+		int GetLastWord();
 		bool GetFaceTrackingInfo();
 		IFTImage* GetVideoBuffer(){ return(m_VideoBuffer); };
 		IFTImage* GetDepthBuffer(){ return(m_DepthBuffer); };
@@ -48,6 +47,7 @@ namespace mini
 		HRESULT StartSpeechRecognition();
 		void ProcessSpeech();
 		void MapSpeechTagToAction(LPCWSTR pszSpeechTag);
+		void ResetWordData();
 
 		void initFaceTracker();
 		void storeFace();

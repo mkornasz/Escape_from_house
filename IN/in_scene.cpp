@@ -213,25 +213,20 @@ void INScene::HandleKinectGestures(float dt)
 		lastWordId = m_kinectService->GetLastWord();
 		switch (lastWordId)
 		{
-		case 0:
-			MoveCharacter(0, 5 * dt);
-			m_kinectService->ResetWordData();
-			break;
 		case 1:
-			MoveCharacter(0, -5 * dt);
-			m_kinectService->ResetWordData();
+			MoveCharacter(0, 20 * dt);
 			break;
 		case 2:
-			MoveCharacter(5 * dt, 0);
-			m_kinectService->ResetWordData();
+			MoveCharacter(0, -20 * dt);
 			break;
 		case 3:
-			MoveCharacter(-5 * dt, 0);
-			m_kinectService->ResetWordData();
+			MoveCharacter(20 * dt, 0);
 			break;
 		case 4:
+			MoveCharacter(-20 * dt, 0);
+			break;
+		case 5:
 			ToggleDoor();
-			m_kinectService->ResetWordData();
 			break;
 		}
 	}

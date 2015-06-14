@@ -61,12 +61,12 @@ bool KinectService::Initialize()
 		return false;
 	}
 
-	//initFaceTracker();
+	initFaceTracker();
 
 	// Start the Nui processing thread
 	m_nuiProcessStop = CreateEvent(NULL, FALSE, FALSE, NULL);
 	m_nuiProcess = CreateThread(NULL, 0, Nui_ProcessThread, this, 0, NULL);
-	
+
 	// Initialize Audio
 	if (FAILED(InitializeAudioStream()))
 	{
@@ -114,29 +114,23 @@ DWORD WINAPI KinectService::Nui_ProcessThread(LPVOID pParam)
 
 		// If the stop event is set, stop looping and exit
 		if (WAIT_OBJECT_0 == WaitForSingleObject(pthis->m_nuiProcessStop, 0))
-		{
 			break;
-		}
 
 		// Process signal events
 		if (WAIT_OBJECT_0 == WaitForSingleObject(pthis->m_depthFrameEvent, 0))
-		{
-			//pthis->Nui_GotDepthAlert();
-			//	pthis->m_FramesTotal++;
-		}
+			pthis->Nui_GotDepthAlert();
+
 		if (WAIT_OBJECT_0 == WaitForSingleObject(pthis->m_videoFrameEvent, 0))
-		{
-			//pthis->Nui_GotVideoAlert();
-		}
+			pthis->Nui_GotVideoAlert();
+
 		if (WAIT_OBJECT_0 == WaitForSingleObject(pthis->m_skeletonEvent, 0))
 		{
 			pthis->Nui_GotSkeletonAlert();
-			//pthis->storeFace();
+			pthis->storeFace();
 		}
+
 		if (WAIT_OBJECT_0 == WaitForSingleObject(pthis->m_speechEvent, 0))
-		{
 			pthis->ProcessSpeech();
-		}
 	}
 
 	return (0);
@@ -479,10 +473,6 @@ void KinectService::initFaceTracker()
 	hr = pFaceTracker->CreateFTResult(&pFTResult);
 	if (FAILED(hr) || !pFTResult)
 	{
-		if (hr == FT_ERROR_UNINITIALIZED)
-			printf("S");
-		else if (hr == E_POINTER)
-			printf("S");
 		MessageBox(0, L"Could not create the face tracker.", L"Error", MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		return;
 	}
@@ -553,4 +543,12 @@ void KinectService::ResetWordData()
 {
 	m_recognisedWord = -1;
 	m_recognisedNewWord = false;
+}
+
+int KinectService::GetLastWord()
+{
+	int word = m_recognisedWord;
+	m_recognisedWord = -1;
+	ResetWordData();
+	return word;
 }
